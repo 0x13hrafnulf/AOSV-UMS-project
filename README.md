@@ -3,9 +3,8 @@ _A.Y. 2020/2021_
 
 ## Author(s)
 
-The author(s) of this project is/are:
-- Name Surname (0123456)
-- Name Surname (0123456)
+The author(s) of this project is:
+- Bektur Umarbaev (1954545)
 
 ## Instructions
 
