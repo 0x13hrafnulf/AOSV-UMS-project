@@ -63,7 +63,7 @@ static int __init init_dev(void)
     if (ret < 0)
     {
         printk(KERN_ERR UMS_MODULE_NAME_LOG "Registration of device " UMS_DEVICE " has failed.\n");
-        return UMS_ERROR;
+        return -UMS_ERROR;
     }
 
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Device " UMS_DEVICE " has been successfully registered.\n");
