@@ -16,13 +16,13 @@ int ums_enter()
     if(ret < 0)
     {
         printf("Error: ums_enter() => Error# = %d\n", errno);
-        return -1;
+        return UMS_ERROR;
     }
     ret = ioctl(ums_dev, UMS_ENTER);
     if(ret < 0)
     {
         printf("Error: ums_enter() => Error# = %d\n", errno);
-        return -1;
+        return UMS_ERROR;
     }
     return ret;
 }
@@ -32,14 +32,14 @@ int ums_exit()
     if(ret < 0)
     {
         printf("Error: ums_exit() => Error# = %d\n", errno);
-        return -1;
+        return UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_EXIT);
     if(ret < 0)
     {
         printf("Error: ums_exit() => Error# = %d\n", errno);
-        return -1;
+        return UMS_ERROR;
     }   
 
     close_device(ums_dev);
@@ -54,7 +54,7 @@ int open_device()
         if(ums_dev < 0) 
         {
             printf("Error: open_device() => Error# = %d\n", errno);
-            return -1;
+            return UMS_ERROR;
 	    }
     }
     pthread_mutex_unlock(&ums_mutex);
@@ -67,7 +67,7 @@ int close_device()
     if(ums_dev < 0) 
     {
         printf("Error: close_device() => Error# = %d\n", errno);
-        return -1;
+        return UMS_ERROR;
     }
     pthread_mutex_unlock(&ums_mutex);
     return UMS_SUCCESS;

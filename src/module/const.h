@@ -12,6 +12,6 @@
 #define UMS_EXIT                            _IO(UMS_IOC_MAGIC, 2)
 
 #define UMS_SUCCESS                         0
-#define UMS_ERROR                           1
+#define UMS_ERROR                           -1
 #define UMS_ERROR_PROCESS_NOT_FOUND         1000
 #define UMS_ERROR_PROCESS_ALREADY_EXISTS    1001
