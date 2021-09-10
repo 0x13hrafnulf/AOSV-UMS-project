@@ -94,3 +94,4 @@ src/**/.*
 *.order
 *.symvers
 *.out
+*.dwo
