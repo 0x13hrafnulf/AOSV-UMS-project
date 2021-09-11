@@ -111,6 +111,27 @@ process_t *check_if_process_exists(pid_t pid)
     return proc;
 }
 
+completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid)
+{
+    completion_list_node_t *comp_list;
+
+    if(!list_empty(&proc->completion_lists->list))
+    {
+        completion_list_node_t *temp = NULL;
+        completion_list_node_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &proc->completion_lists->list, list) 
+        {
+            if(temp->clid == clid)
+            {
+                comp_list = temp;
+                break;
+            }
+        }
+    }
+  
+    return comp_list;
+}
+
 int delete_process(process_t *proc)
 {
     delete_completion_lists(proc);
