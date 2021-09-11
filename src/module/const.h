@@ -11,12 +11,13 @@
 #define UMS_ENTER                           _IO(UMS_IOC_MAGIC, 1)
 #define UMS_EXIT                            _IO(UMS_IOC_MAGIC, 2)
 #define UMS_CREATE_LIST                     _IO(UMS_IOC_MAGIC, 3)
+#define UMS_CREATE_WORKER                   _IOW(UMS_IOC_MAGIC, 4, unsigned long)
 
 #define UMS_SUCCESS                         0
 #define UMS_ERROR                           1
 #define UMS_ERROR_PROCESS_NOT_FOUND         1000
 #define UMS_ERROR_PROCESS_ALREADY_EXISTS    1001
-
+#define UMS_ERROR_COMPLETION_LIST_NOT_FOUND 1002
 
 typedef enum state {
     IDLE,
@@ -39,3 +40,11 @@ typedef struct list_params {
     state_t state;
     ums_wid_t workers[];
 } list_params_t;
+
+typedef struct worker_params {
+    unsigned long entry_point;
+    unsigned long function_args; 
+    unsigned long stack_size; 
+    unsigned long stack_addr;
+    ums_clid_t clid;
+} worker_params_t;

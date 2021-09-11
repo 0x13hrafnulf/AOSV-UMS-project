@@ -13,6 +13,7 @@ ums_comletion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
     .count = 0
 };
+ums_worker_list_t workers;
 
 int ums_enter()
 {
@@ -30,6 +31,7 @@ int ums_enter()
     }
     return ret;
 }
+
 int ums_exit()
 {
     int ret = open_device();
@@ -49,6 +51,7 @@ int ums_exit()
     cleanup();
     return ret;
 }
+
 int open_device()
 {
     pthread_mutex_lock(&ums_mutex);
@@ -64,6 +67,7 @@ int open_device()
     pthread_mutex_unlock(&ums_mutex);
     return UMS_SUCCESS;
 }
+
 int close_device()
 {
     pthread_mutex_lock(&ums_mutex);
@@ -102,6 +106,10 @@ ums_clid_t ums_create_completion_list()
     return ret;
 }
 
+ums_wid_t ums_create_worker_thread(ums_clid_t list_id, unsigned long stack_size, void (*entry_point)(void *), void *args)
+{
+    
+}
 
 int cleanup()
 {

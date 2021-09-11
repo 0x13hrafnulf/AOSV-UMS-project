@@ -22,7 +22,7 @@ typedef struct completion_list_node completion_list_node_t;
 int enter_ums(void);
 int exit_ums(void);
 ums_clid_t create_completion_list(void);
-
+ums_wid_t create_worker_thread(worker_params_t *params);
 
 int delete_process(process_t *process);
 int delete_completion_lists(process_t *proc);

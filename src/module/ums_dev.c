@@ -45,6 +45,9 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
         case UMS_CREATE_LIST:
             ret = create_completion_list();
             goto out;
+        case UMS_CREATE_WORKER:
+            ret = create_worker_thread((worker_params_t*)arg);
+            goto out;    
         default:
             goto out;
 	}

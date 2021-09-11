@@ -37,6 +37,7 @@ int exit_ums(void)
 
     return UMS_SUCCESS;
 }
+
 process_t *create_process_node(pid_t pid)
 {
     process_t *proc;
@@ -82,6 +83,11 @@ ums_clid_t create_completion_list()
 
     list_id = comp_list->clid;
     return list_id;
+}
+
+ums_wid_t create_worker_thread(worker_params_t *params)
+{
+    
 }
 
 process_t *check_if_process_exists(pid_t pid)
