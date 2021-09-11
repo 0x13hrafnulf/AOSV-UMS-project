@@ -54,6 +54,13 @@ process_t *create_process_node(pid_t pid)
     INIT_LIST_HEAD(&comp_lists->list);
     comp_lists->list_count = 0;
 
+    worker_list_t *work_list;
+    work_list = kmalloc(sizeof(worker_list_t), GFP_KERNEL);
+    proc->worker_list = work_list;
+    INIT_LIST_HEAD(&work_list->list);
+    work_list->worker_count = 0;
+
+    //TBA scheduler list
 
     return proc;
 }
@@ -80,6 +87,8 @@ ums_clid_t create_completion_list()
     comp_list->worker_count = 0;
     comp_list->finished_count = 0;
     //TBA worker lists
+    
+
 
     list_id = comp_list->clid;
     return list_id;
