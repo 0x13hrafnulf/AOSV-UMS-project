@@ -10,6 +10,7 @@
 #include <linux/list.h>
 #include <linux/slab.h>	
 #include <linux/types.h>
+#include <linux/time.h>
 
 extern spinlock_t spinlock_ums;
 extern unsigned long spinlock_flags_ums;
@@ -19,7 +20,7 @@ typedef struct process process_t;
 typedef struct completion_list completion_list_t;
 typedef struct completion_list_node completion_list_node_t;
 typedef struct worker_list worker_list_t;
-typedef struct worker worker_list_t;
+typedef struct worker worker_t;
 
 int enter_ums(void);
 int exit_ums(void);
@@ -28,8 +29,11 @@ ums_wid_t create_worker_thread(worker_params_t *params);
 completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
 
 
-int delete_process(process_t *process);
-int delete_completion_lists(process_t *proc);
+int delete_process(process_t *proc);
+int delete_completion_lists_and_worker_threads(process_t *proc);
+int delete_workers_from_completion_list(worker_list_t *worker_list);
+int delete_workers_from_process_list(worker_list_t *worker_list);
+
 process_t *create_process_node(pid_t pid);
 process_t *check_if_process_exists(pid_t pid);
 
@@ -56,7 +60,7 @@ typedef struct completion_list_node {
     struct list_head list;
     unsigned int worker_count;
     unsigned int finished_count;
-    worker_list_t *ready_list;  
+    worker_list_t *idle_list;  
     worker_list_t *busy_list;
 } completion_list_node_t;
 
@@ -67,8 +71,8 @@ typedef struct worker_list {
 
 typedef struct worker {
     ums_wid_t wid;
-    pid_t pid;
-    tid_t tid;
+    pid_t pid;  //Run by
+    pid_t tid;  //Created by
     ums_sid_t sid;
     unsigned long entry_point;
     unsigned long stack_addr; 
@@ -79,6 +83,6 @@ typedef struct worker {
     state_t state;
     unsigned int switch_count;
     unsigned long total_exec_time;
-    struct timespec time_of_the_last_switch;
+    struct timespec64 time_of_the_last_switch;
 } worker_t;
 

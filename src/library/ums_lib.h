@@ -5,20 +5,20 @@
 
 #define UMS_DEVICE "/dev/ums"
 
-
-int ums_enter();
-int ums_exit();
-ums_clid_t ums_create_completion_list();
-ums_wid_t ums_create_worker_thread(ums_clid_t list_id, unsigned long stack_size, void (*entry_point)(void *), void *args);
-
-int open_device();
-int close_device();
-int cleanup();
-
 typedef struct ums_comletion_list ums_comletion_list_t;
 typedef struct ums_completion_list_node ums_completion_list_node_t;
 typedef struct ums_worker ums_worker_t;
 typedef struct ums_worker_list ums_worker_list_t;
+
+int ums_enter();
+int ums_exit();
+ums_clid_t ums_create_completion_list();
+ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, void (*entry_point)(void *), void *args);
+
+int open_device();
+int close_device();
+int cleanup();
+ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
 
 typedef struct ums_comletion_list {
     struct list_head list;

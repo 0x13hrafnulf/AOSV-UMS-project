@@ -13,7 +13,10 @@ ums_comletion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
     .count = 0
 };
-ums_worker_list_t workers;
+ums_worker_list_t workers = {
+    .list = LIST_HEAD_INIT(workers.list),
+    .count = 0
+};
 
 int ums_enter()
 {
@@ -106,9 +109,62 @@ ums_clid_t ums_create_completion_list()
     return ret;
 }
 
-ums_wid_t ums_create_worker_thread(ums_clid_t list_id, unsigned long stack_size, void (*entry_point)(void *), void *args)
+ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, void (*entry_point)(void *), void *args)
 {
-    
+    ums_worker_t *worker;
+    ums_completion_list_node_t *comp_list;
+    comp_list = check_if_completion_list_exists(clid);
+    if(comp_list == NULL)
+    {
+        printf("Error: ums_create_worker_thread() => Completion list: %d does not exist.\n", (int)clid);
+        return -1;
+    }
+
+    worker_params_t *params;
+    params = init(worker_params_t);
+
+    params->entry_point = (unsigned long)entry_point;
+    params->function_args = (unsigned long)args;
+    params->stack_size = stack_size;
+    params->clid = clid;
+
+    void *stack;
+    int ret = posix_memalign(&stack, 16, stack_size);
+    if(ret < 0)
+    {
+        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
+        delete(params);
+        return -1;
+    }
+    params->stack_addr = (unsigned long)stack;
+
+    ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
+        delete((void*)params->stack_addr);
+        delete(params);
+        return -1;
+    }
+
+    ret = ioctl(ums_dev, UMS_CREATE_WORKER, (unsigned long)params);
+    if(ret < 0)
+    {
+        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
+        delete((void*)params->stack_addr);
+        delete(params);
+        return -1;
+    }
+
+    worker = init(ums_worker_t);
+    worker->wid = (ums_wid_t)ret;
+    worker->worker_params = params;
+    list_add_tail(&(worker->list), &workers.list);
+
+    workers.count++;
+    comp_list->worker_count++;
+
+    return ret;
 }
 
 int cleanup()
@@ -121,11 +177,45 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_EXAMPLE: #:%d completion list was deleted.\n", temp->clid);
-            //delete(list_params);
+            if(temp->list_params != NULL) delete(temp->list_params);
+            delete(temp);
+        }
+    }
+    if(!list_empty(&workers.list))
+    {
+        ums_worker_t *temp = NULL;
+        ums_worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &workers.list, list) 
+        {
+            list_del(&temp->list);
+            printf("UMS_EXAMPLE: #:%d worker list was deleted.\n", temp->wid);
+            delete((void*)temp->worker_params->stack_addr);
+            delete(temp->worker_params);
             delete(temp);
         }
     }
     return UMS_SUCCESS;
+}
+
+ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
+{
+    ums_completion_list_node_t *comp_list;
+
+    if(!list_empty(&completion_lists.list))
+    {
+        ums_completion_list_node_t *temp = NULL;
+        ums_completion_list_node_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &completion_lists.list, list) 
+        {
+            if(temp->clid == clid)
+            {
+                comp_list = temp;
+                break;
+            }
+        }
+    }
+  
+    return comp_list;
 }
 
 __attribute__((constructor)) void start(void)
