@@ -17,6 +17,12 @@ ums_worker_list_t workers = {
     .list = LIST_HEAD_INIT(workers.list),
     .count = 0
 };
+ums_scheduler_list_t schedulers = {
+    .list = LIST_HEAD_INIT(schedulers.list),
+    .count = 0
+};
+
+__thread ums_clid_t completion_list_id;
 
 int ums_enter()
 {
@@ -37,6 +43,16 @@ int ums_enter()
 
 int ums_exit()
 {
+    if(!list_empty(&schedulers.list))
+    {
+        ums_scheduler_t *temp = NULL;
+        ums_scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &schedulers.list, list) 
+        {
+            pthread_join(&temp->tid, NULL);
+        }
+    }
+
     int ret = open_device();
     if(ret < 0)
     {
@@ -116,7 +132,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     comp_list = check_if_completion_list_exists(clid);
     if(comp_list == NULL)
     {
-        printf("Error: ums_create_worker_thread() => Completion list: %d does not exist.\n", (int)clid);
+        printf("Error: ums_create_worker_thread() => Completion list:%d does not exist.\n", (int)clid);
         return -1;
     }
 
@@ -167,6 +183,78 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     return ret;
 }
 
+ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
+{
+    ums_completion_list_node_t *comp_list;
+    comp_list = check_if_completion_list_exists(clid);
+    if(comp_list == NULL)
+    {
+        printf("Error: ums_create_scheduler() => Completion list:%d does not exist.\n", (int)clid);
+        return -1;
+    }
+
+    scheduler_params_t *params;
+    params = init(scheduler_params_t);
+    params->entry_point = (unsigned long)entry_point;
+    params->clid = clid;
+
+    ums_scheduler_t *scheduler;
+    scheduler = init(ums_scheduler_t);
+    scheduler->sched_params = params;
+    list_add_tail(&(scheduler->list), &schedulers.list);
+
+    int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *) &scheduler->sched_params);
+    if(ret < 0)
+    {
+        printf("Error: ums_create_scheduler() => Error# = %d\n", errno);
+        delete(params);
+        return -1;
+    }
+
+    return ret;
+}
+
+int ums_enter_scheduling_mode(void *args)
+{
+    scheduler_params_t *params = (scheduler_params_t *)args;
+    completion_list_id = params->clid;
+
+    int ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
+        delete(params);
+        return -1;
+    }
+
+    ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)&params);
+    if(ret < 0)
+    {
+        printf("Error: ums_enter_scheduling_mode() => Error# = %d\n", errno);
+        return -1;
+    }
+
+    pthread_exit(NULL);
+}
+
+int ums_exit_scheduling_mode()
+{
+    int ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_exit_scheduling_mode() => Error# = %d\n", errno);
+        return -1;
+    }
+
+    ret = ioctl(ums_dev, UMS_EXIT_SCHEDULING_MODE);
+    if(ret < 0)
+    {
+        printf("Error: ums_exit_scheduling_mode() => Error# = %d\n", errno);
+        return -1;
+    }   
+    return ret;
+}
+
 int cleanup()
 {
     if(!list_empty(&completion_lists.list))
@@ -176,7 +264,7 @@ int cleanup()
         list_for_each_entry_safe(temp, safe_temp, &completion_lists.list, list) 
         {
             list_del(&temp->list);
-            printf("UMS_EXAMPLE: #:%d completion list was deleted.\n", temp->clid);
+            printf("UMS_EXAMPLE: Completion list:%d was deleted.\n", temp->clid);
             if(temp->list_params != NULL) delete(temp->list_params);
             delete(temp);
         }
@@ -188,9 +276,21 @@ int cleanup()
         list_for_each_entry_safe(temp, safe_temp, &workers.list, list) 
         {
             list_del(&temp->list);
-            printf("UMS_EXAMPLE: #:%d worker list was deleted.\n", temp->wid);
+            printf("UMS_EXAMPLE: Worker thread:%d  was deleted.\n", temp->wid);
             delete((void*)temp->worker_params->stack_addr);
             delete(temp->worker_params);
+            delete(temp);
+        }
+    }
+    if(!list_empty(&schedulers.list))
+    {
+        ums_scheduler_t *temp = NULL;
+        ums_scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &schedulers.list, list) 
+        {
+            list_del(&temp->list);
+            printf("UMS_EXAMPLE: Scheduler:%d  was deleted.\n", temp->sched_params->sid);
+            delete(temp->sched_params);
             delete(temp);
         }
     }

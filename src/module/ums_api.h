@@ -27,7 +27,8 @@ int exit_ums(void);
 ums_clid_t create_completion_list(void);
 ums_wid_t create_worker_thread(worker_params_t *params);
 completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
-
+ums_sid_t enter_scheduling_mode(scheduler_params_t *params);
+int exit_scheduling_mode(void);
 
 int delete_process(process_t *proc);
 int delete_completion_lists_and_worker_threads(process_t *proc);

@@ -47,7 +47,13 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
             goto out;
         case UMS_CREATE_WORKER:
             ret = create_worker_thread((worker_params_t*)arg);
-            goto out;    
+            goto out;
+        case UMS_ENTER_SCHEDULING_MODE:
+            ret = enter_scheduling_mode((scheduler_params_t*)arg);
+            goto out;
+        case UMS_EXIT_SCHEDULING_MODE:
+            ret = exit_scheduling_mode();
+            goto out;
         default:
             goto out;
 	}

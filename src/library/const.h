@@ -9,6 +9,8 @@
 #define UMS_EXIT                            _IO(UMS_IOC_MAGIC, 2)
 #define UMS_CREATE_LIST                     _IO(UMS_IOC_MAGIC, 3)
 #define UMS_CREATE_WORKER                   _IOW(UMS_IOC_MAGIC, 4, unsigned long)
+#define UMS_ENTER_SCHEDULING_MODE           _IOW(UMS_IOC_MAGIC, 5, unsigned long)
+#define UMS_EXIT_SCHEDULING_MODE            _IO(UMS_IOC_MAGIC, 6)
 
 #define UMS_SUCCESS                         0
 #define UMS_ERROR                           1
@@ -45,3 +47,9 @@ typedef struct worker_params {
     unsigned long stack_addr;
     ums_clid_t clid;
 } worker_params_t;
+
+typedef struct scheduler_params {
+    unsigned long entry_point; 
+    ums_clid_t clid;
+    ums_sid_t sid;
+} scheduler_params_t;

@@ -161,6 +161,16 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     return worker_id;
 }
 
+ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
+{
+    return UMS_SUCCESS;
+}
+
+int exit_scheduling_mode(void)
+{
+    return UMS_SUCCESS;
+}
+
 process_t *check_if_process_exists(pid_t pid)
 {
     process_t *proc = NULL;
@@ -222,7 +232,7 @@ int delete_completion_lists_and_worker_threads(process_t *proc)
         completion_list_node_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc->completion_lists->list, list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " %d completion list was deleted.\n", temp->clid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG " Completion list:%d was deleted.\n", temp->clid);
 
             if(temp->idle_list->worker_count > 0) delete_workers_from_completion_list(temp->idle_list);
             if(temp->busy_list->worker_count > 0) delete_workers_from_completion_list(temp->busy_list);
@@ -247,7 +257,7 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, local_list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " %d worker thread was deleted.\n", temp->wid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG " Worker thread:%d was deleted.\n", temp->wid);
 
             list_del(&temp->local_list);
             list_del(&temp->global_list);
@@ -266,7 +276,7 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, global_list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " %d worker thread was deleted.\n", temp->wid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG " Worker thread:%d was deleted.\n", temp->wid);
 
             list_del(&temp->global_list);
             kfree(temp);
