@@ -21,6 +21,8 @@ typedef struct completion_list completion_list_t;
 typedef struct completion_list_node completion_list_node_t;
 typedef struct worker_list worker_list_t;
 typedef struct worker worker_t;
+typedef struct scheduler_list scheduler_list_t;
+typedef struct scheduler scheduler_t;
 
 int enter_ums(void);
 int exit_ums(void);
@@ -48,7 +50,7 @@ typedef struct process {
     struct list_head list;
     completion_list_t *completion_lists;
     worker_list_t *worker_list;
-    //TBA scheduler to track them 
+    scheduler_list_t *scheduler_list;
 } process_t;
 
 typedef struct completion_list {
@@ -87,3 +89,25 @@ typedef struct worker {
     struct timespec64 time_of_the_last_switch;
 } worker_t;
 
+typedef struct scheduler_list {
+    struct list_head list;
+    unsigned int scheduler_count;
+} scheduler_list_t;
+
+typedef struct scheduler {
+    ums_sid_t sid;
+    pid_t pid;
+    tid_t tid;
+    ums_wid_t wid;
+	unsigned long entry_point;
+    unsigned long return_addr;
+    unsigned long stack_ptr;
+    unsigned long base_ptr;
+    state_t state;
+    struct pt_regs regs;
+    struct fpu fpu_regs;
+    completion_list_node_t *comp_list;
+    struct list_head list;
+    unsigned int switch_count;
+    unsigned long time_needed_for_the_last_switch;
+} scheduler_t;

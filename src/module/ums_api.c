@@ -165,6 +165,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
     printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
+
     return UMS_SUCCESS;
 }
 
@@ -172,6 +173,7 @@ int exit_scheduling_mode(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Called exit_scheduling_mode()\n");
     printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
+    
     return UMS_SUCCESS;
 }
 
