@@ -49,7 +49,12 @@ int ums_exit()
         ums_scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &schedulers.list, list) 
         {
-            pthread_join(&temp->tid, NULL);
+            int ret = pthread_join(temp->tid, NULL);
+            if(ret < 0)
+            {
+                printf("Error: ums_create_scheduler() => Error# = %d\n", errno);
+                return -1;
+            }
         }
     }
 
@@ -192,7 +197,6 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
         printf("Error: ums_create_scheduler() => Completion list:%d does not exist.\n", (int)clid);
         return -1;
     }
-
     scheduler_params_t *params;
     params = init(scheduler_params_t);
     params->entry_point = (unsigned long)entry_point;
@@ -204,6 +208,7 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
     list_add_tail(&(scheduler->list), &schedulers.list);
 
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *) &scheduler->sched_params);
+    printf("UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, scheduler->tid);
     if(ret < 0)
     {
         printf("Error: ums_create_scheduler() => Error# = %d\n", errno);
@@ -214,26 +219,26 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
     return ret;
 }
 
-int ums_enter_scheduling_mode(void *args)
+void *ums_enter_scheduling_mode(void *args)
 {
     scheduler_params_t *params = (scheduler_params_t *)args;
     completion_list_id = params->clid;
 
+    printf("UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, pthread_self());
     int ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
-        delete(params);
-        return -1;
+        pthread_exit(NULL);
     }
 
     ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)&params);
     if(ret < 0)
     {
         printf("Error: ums_enter_scheduling_mode() => Error# = %d\n", errno);
-        return -1;
+        pthread_exit(NULL);
     }
-
+    printf("UMS_LIB: %s => return => pthread_id: %ld \n", __FUNCTION__, pthread_self());
     pthread_exit(NULL);
 }
 

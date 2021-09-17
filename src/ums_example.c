@@ -2,6 +2,12 @@
 
 #define STACK_SIZE 4096 * 2
 
+void entry_point()
+{
+    printf("UMS_EXAMPLE: %s\n", __FUNCTION__);
+    ums_exit_scheduling_mode();
+}
+
 void function1(void *args)
 {
 
@@ -22,8 +28,11 @@ int main()
     int arg1 = 1;
     int arg2 = 2;
     ums_wid_t worker1 = ums_create_worker_thread(comp_list1, STACK_SIZE, function1, &arg1);
-    ums_wid_t worker2 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker2 = ums_create_worker_thread(comp_list2, STACK_SIZE, function2, &arg2);
 
+
+    ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, entry_point);
+    ums_sid_t scheduler2 = ums_create_scheduler(comp_list2, entry_point);
     ums_exit();
     return 0;
 }
