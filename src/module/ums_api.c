@@ -189,7 +189,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
         printk(KERN_INFO UMS_MODULE_NAME_LOG "enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
         return err;
     }
-
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     comp_list = check_if_completion_list_exists(process, kern_params.clid);
     if(comp_list == NULL)
     {
@@ -208,6 +208,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->comp_list = comp_list;
     scheduler_id = scheduler->sid;
 
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     kern_params.clid = scheduler_id;
     err = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
     if(err != 0)
@@ -224,8 +225,9 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->stack_ptr = scheduler->regs.sp;
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     process->scheduler_list->scheduler_count++;
-    memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+    //memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
 
     return scheduler_id;
@@ -428,6 +430,8 @@ int delete_schedulers(process_t *proc)
         scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
         {
+            printk(KERN_INFO UMS_MODULE_NAME_LOG " Scheduler:%d was deleted.\n", temp->wid);
+
             list_del(&temp->list);
             kfree(temp);
         }

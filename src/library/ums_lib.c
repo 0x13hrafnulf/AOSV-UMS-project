@@ -188,7 +188,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     return ret;
 }
 
-ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
+ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
 {
     ums_completion_list_node_t *comp_list;
     comp_list = check_if_completion_list_exists(clid);
@@ -202,11 +202,12 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *))
     params->entry_point = (unsigned long)entry_point;
     params->clid = clid;
 
+    printf("UMS_LIB: Entry_point: %ld \n", params->entry_point);
     ums_scheduler_t *scheduler;
     scheduler = init(ums_scheduler_t);
     scheduler->sched_params = params;
     list_add_tail(&(scheduler->list), &schedulers.list);
-
+    //ISSUE IS HERE FIX THE PARAMS POINTERS
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *) &scheduler->sched_params);
     printf("UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, scheduler->tid);
     if(ret < 0)
@@ -224,21 +225,22 @@ void *ums_enter_scheduling_mode(void *args)
     scheduler_params_t *params = (scheduler_params_t *)args;
     completion_list_id = params->clid;
 
-    printf("UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, pthread_self());
+    printf("***UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, pthread_self());
     int ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
-
+    printf("UMS_LIB: Entry_point: %ld \n", params->entry_point);
+    printf("UMS_LIB: Entry_point: %ld \n", params->entry_point);
     ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)&params);
     if(ret < 0)
     {
         printf("Error: ums_enter_scheduling_mode() => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
-    printf("UMS_LIB: %s => return => pthread_id: %ld \n", __FUNCTION__, pthread_self());
+    printf("***UMS_LIB: %s => return => pthread_id: %ld \n", __FUNCTION__, pthread_self());
     pthread_exit(NULL);
 }
 
