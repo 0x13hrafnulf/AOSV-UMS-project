@@ -165,8 +165,72 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
     printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
+  //NEED TO REDO IT TO FIT WITH PTHREAD IDEA
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
+    
+    ums_sid_t scheduler_id;
+    scheduler_t *scheduler;
+    process_t *process;
+    completion_list_node_t *comp_list;
+    scheduler_params_t kern_params;
 
-    return UMS_SUCCESS;
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
+    {
+        return -UMS_ERROR_PROCESS_NOT_FOUND;
+    }
+
+    int err = copy_from_user(&kern_params, params, sizeof(scheduler_params_t));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
+        return err;
+    }
+
+    comp_list = check_if_completion_list_exists(process, kern_params->clid);
+    if(comp_list == NULL)
+    {
+        return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
+    }
+
+    scheduler = kmalloc(sizeof(scheduler_t), GFP_KERNEL);
+    list_add_tail(&(scheduler->list), &process->scheduler_list.list);
+
+    scheduler->sid = process->scheduler_list.scheduler_count;
+    scheduler->pid = current->pid;
+    scheduler->tid = current->tgid;
+    scheduler->wid = -1;
+    scheduler->state = IDLE;
+    scheduler->entry_point = kern_params.entry_point;
+    scheduler->comp_list = comp_list;
+    scheduler_id = scheduler->sid;
+
+    kern_params.clid = scheduler_id;
+    err = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "enter_scheduling_mode(): copy_to_user failed to copy %d bytes\n", err);
+        return err;
+    }
+
+    memcpy(&scheduler->regs, task_pt_regs(current), sizeof(struct pt_regs));
+    memset(&scheduler->fpu_regs, 0, sizeof(struct fpu));
+    copy_fxregs_to_kernel(&scheduler->fpu_regs);
+
+    scheduler->return_addr = scheduler->regs.ip;
+    scheduler->stack_ptr = scheduler->regs.sp;
+    scheduler->base_ptr = scheduler->regs.bp;
+    scheduler->regs.ip = kern_params.entry_point;
+    
+
+//    scheduler->regs.di = kern_params.function_args;
+//    scheduler->regs.sp = kern_params.stack_addr;
+//    scheduler->regs.bp = kern_params.stack_addr;
+
+    //SET CURRENT->PT_REGS TO JUMP TO ENTRY POINT
+    //memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
+
+    return scheduler_id;
 }
 
 int exit_scheduling_mode(void)
@@ -174,6 +238,30 @@ int exit_scheduling_mode(void)
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Called exit_scheduling_mode()\n");
     printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
     
+    scheduler_t *scheduler;
+    process_t *process;
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
+    {
+        return -UMS_ERROR_PROCESS_NOT_FOUND;
+    }
+
+    scheduler = check_if_scheduler_exists(process, current->pid);
+    if(scheduler == NULL)
+    {
+        return -UMS_ERROR_SCHEDULER_NOT_FOUND;
+    }
+    scheduler->wid = -1;
+    scheduler->state = FINISHED;
+
+
+    scheduler->regs.ip = scheduler->return_addr;
+    scheduler->regs.sp = scheduler->stack_ptr;
+    scheduler->regs.bp = scheduler->base_ptr;
+
+    memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+    copy_kernel_to_fxregs(&scheduler->fpu_regs.state.fxsave);
+
     return UMS_SUCCESS;
 }
 

@@ -32,7 +32,7 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "pid: %d, tgid: %d, IOCTL:%d", current->pid, current->tgid, cmd);
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "***IOCTL_START: pid: %d, tgid: %d, IOCTL:%d", current->pid, current->tgid, cmd);
     spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
 
     switch (cmd) {
@@ -59,7 +59,7 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 	}
 
     out:
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "pid: %d, tgid: %d, IOCTL:%d => return_value: %d",  current->pid, current->tgid, cmd, ret);
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "***IOCTL_END: pid: %d, tgid: %d, IOCTL:%d => return_value: %d",  current->pid, current->tgid, cmd, ret);
     spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
 	return ret;
 }
