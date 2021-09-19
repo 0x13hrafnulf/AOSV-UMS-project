@@ -208,7 +208,7 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     scheduler->sched_params = params;
     list_add_tail(&(scheduler->list), &schedulers.list);
     //ISSUE IS HERE FIX THE PARAMS POINTERS
-    int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *) &scheduler->sched_params);
+    int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *)scheduler->sched_params);
     printf("UMS_LIB: %s => pthread_id: %ld \n", __FUNCTION__, scheduler->tid);
     if(ret < 0)
     {
@@ -234,7 +234,7 @@ void *ums_enter_scheduling_mode(void *args)
     }
     printf("UMS_LIB: Entry_point: %ld \n", params->entry_point);
     printf("UMS_LIB: Entry_point: %ld \n", params->entry_point);
-    ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)&params);
+    ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)params);
     if(ret < 0)
     {
         printf("Error: ums_enter_scheduling_mode() => Error# = %d\n", errno);
