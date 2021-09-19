@@ -60,7 +60,11 @@ process_t *create_process_node(pid_t pid)
     INIT_LIST_HEAD(&work_list->list);
     work_list->worker_count = 0;
 
-    //TBA scheduler list
+    scheduler_list_t *sched_list;
+    sched_list = kmalloc(sizeof(sched_list), GFP_KERNEL);
+    proc->scheduler_list = sched_list;
+    INIT_LIST_HEAD(&sched_list->list);
+    sched_list->scheduler_count = 0;
 
     return proc;
 }
@@ -166,7 +170,6 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
     printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
   //NEED TO REDO IT TO FIT WITH PTHREAD IDEA
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
     
     ums_sid_t scheduler_id;
     scheduler_t *scheduler;
@@ -187,16 +190,16 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
         return err;
     }
 
-    comp_list = check_if_completion_list_exists(process, kern_params->clid);
+    comp_list = check_if_completion_list_exists(process, kern_params.clid);
     if(comp_list == NULL)
     {
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
     scheduler = kmalloc(sizeof(scheduler_t), GFP_KERNEL);
-    list_add_tail(&(scheduler->list), &process->scheduler_list.list);
+    list_add_tail(&(scheduler->list), &process->scheduler_list->list);
 
-    scheduler->sid = process->scheduler_list.scheduler_count;
+    scheduler->sid = process->scheduler_list->scheduler_count;
     scheduler->pid = current->pid;
     scheduler->tid = current->tgid;
     scheduler->wid = -1;
@@ -221,14 +224,9 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->stack_ptr = scheduler->regs.sp;
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
-    
-
-//    scheduler->regs.di = kern_params.function_args;
-//    scheduler->regs.sp = kern_params.stack_addr;
-//    scheduler->regs.bp = kern_params.stack_addr;
-
-    //SET CURRENT->PT_REGS TO JUMP TO ENTRY POINT
-    //memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
+    process->scheduler_list->scheduler_count++;
+    memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+        
 
     return scheduler_id;
 }
@@ -307,10 +305,52 @@ completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_cli
     return comp_list;
 }
 
+scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid)
+{
+    scheduler_t *scheduler;
+
+    if(!list_empty(&proc->scheduler_list->list))
+    {
+        scheduler_t *temp = NULL;
+        scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        {
+            if(temp->pid == pid)
+            {
+                scheduler = temp;
+                break;
+            }
+        }
+    }
+  
+    return scheduler;
+}
+
+worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
+{
+    worker_t *worker;
+
+    if(!list_empty(&worker_list->list))
+    {
+        worker_t *temp = NULL;
+        worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &worker_list->list, local_list) 
+        {
+            if(temp->wid == wid)
+            {
+                worker = temp;
+                break;
+            }
+        }
+    }
+  
+    return worker;
+}
+
 int delete_process(process_t *proc)
 {
     delete_completion_lists_and_worker_threads(proc);
-    //delete_schedulers(proc);
+    delete_schedulers(proc);
     list_del(&proc->list);
     proc_list.process_count--;
     kfree(proc);
@@ -376,5 +416,23 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
             kfree(temp);
         }
     }
+    return UMS_SUCCESS;
+}
+
+int delete_schedulers(process_t *proc)
+{
+
+    if(!list_empty(&proc->scheduler_list->list))
+    {
+        scheduler_t *temp = NULL;
+        scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        {
+            list_del(&temp->list);
+            kfree(temp);
+        }
+    }
+    list_del(&proc->scheduler_list->list);
+    kfree(proc->scheduler_list);
     return UMS_SUCCESS;
 }

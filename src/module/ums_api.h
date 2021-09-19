@@ -28,7 +28,6 @@ int enter_ums(void);
 int exit_ums(void);
 ums_clid_t create_completion_list(void);
 ums_wid_t create_worker_thread(worker_params_t *params);
-completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
 ums_sid_t enter_scheduling_mode(scheduler_params_t *params);
 int exit_scheduling_mode(void);
 
@@ -36,9 +35,13 @@ int delete_process(process_t *proc);
 int delete_completion_lists_and_worker_threads(process_t *proc);
 int delete_workers_from_completion_list(worker_list_t *worker_list);
 int delete_workers_from_process_list(worker_list_t *worker_list);
+int delete_schedulers(process_t *proc);
 
 process_t *create_process_node(pid_t pid);
 process_t *check_if_process_exists(pid_t pid);
+completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
+scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid);
+worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid);
 
 typedef struct process_list {
     struct list_head list;
@@ -75,7 +78,7 @@ typedef struct worker_list {
 typedef struct worker {
     ums_wid_t wid;
     pid_t pid;  //Run by
-    pid_t tid;  //Created by
+    pid_t tid;  
     ums_sid_t sid;
     unsigned long entry_point;
     unsigned long stack_addr; 
@@ -96,8 +99,8 @@ typedef struct scheduler_list {
 
 typedef struct scheduler {
     ums_sid_t sid;
-    pid_t pid;
-    tid_t tid;
+    pid_t pid; //Run by
+    pid_t tid; //Created by
     ums_wid_t wid;
 	unsigned long entry_point;
     unsigned long return_addr;
