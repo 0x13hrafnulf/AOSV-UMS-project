@@ -209,7 +209,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler_id = scheduler->sid;
 
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
-    kern_params.clid = scheduler_id;
+    kern_params.sid = scheduler_id;
     err = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
     if(err != 0)
     {
@@ -227,7 +227,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->regs.ip = kern_params.entry_point;
     printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     process->scheduler_list->scheduler_count++;
-    //memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+    memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
 
     return scheduler_id;
@@ -380,7 +380,7 @@ int delete_completion_lists_and_worker_threads(process_t *proc)
     }
     list_del(&proc->completion_lists->list);
     kfree(proc->completion_lists);
-    delete_workers_from_process_list(proc->worker_list);
+    //delete_workers_from_process_list(proc->worker_list);
     kfree(proc->worker_list);
     return UMS_SUCCESS;
 }
@@ -430,7 +430,7 @@ int delete_schedulers(process_t *proc)
         scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " Scheduler:%d was deleted.\n", temp->wid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG " Scheduler:%d was deleted.\n", temp->sid);
 
             list_del(&temp->list);
             kfree(temp);
