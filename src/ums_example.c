@@ -33,6 +33,12 @@ int main()
     
     ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, loop);
     ums_sid_t scheduler2 = ums_create_scheduler(comp_list2, loop);
-    ums_exit();
+    
+    int ret;
+    do
+    {
+       ret = ums_exit();
+    } while (ret != UMS_SUCCESS);
+    
     return 0;
 }

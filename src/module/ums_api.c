@@ -8,7 +8,7 @@ process_list_t proc_list = {
 int enter_ums(void)
 {
     process_t *proc;
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Invokation of enter_ums()\n");
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_ums()\n");
 
     proc = check_if_process_exists(current->pid);
     if(proc != NULL)
@@ -25,7 +25,7 @@ int exit_ums(void)
 {
     process_t *proc;
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Invokation of exit_ums()\n");
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_ums()\n");
 
     proc = check_if_process_exists(current->pid);
     if(proc == NULL)
@@ -71,7 +71,7 @@ process_t *create_process_node(pid_t pid)
 
 ums_clid_t create_completion_list()
 {
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called create_completion_list()\n");
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_completion_list()\n");
 
     ums_clid_t list_id;
     process_t *proc;
@@ -109,7 +109,7 @@ ums_clid_t create_completion_list()
 
 ums_wid_t create_worker_thread(worker_params_t *params)
 {
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called create_worker_thread()\n");
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_worker_thread()\n");
 
     ums_wid_t worker_id;
     worker_t *worker;
@@ -126,7 +126,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     int err = copy_from_user(&kern_params, params, sizeof(worker_params_t));
     if(err != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG "Error: create_worker_thread() => copy_from_user failed to copy %d bytes\n", err);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG "--- Error: create_worker_thread() => copy_from_user failed to copy %d bytes\n", err);
         return err;
     }
 
@@ -167,9 +167,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
 
 ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called enter_scheduling_mode()\n");
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
-  //NEED TO REDO IT TO FIT WITH PTHREAD IDEA
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_scheduling_mode()\n");
     
     ums_sid_t scheduler_id;
     scheduler_t *scheduler;
@@ -186,10 +184,9 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     int err = copy_from_user(&kern_params, params, sizeof(scheduler_params_t));
     if(err != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
         return err;
     }
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     comp_list = check_if_completion_list_exists(process, kern_params.clid);
     if(comp_list == NULL)
     {
@@ -208,12 +205,11 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->comp_list = comp_list;
     scheduler_id = scheduler->sid;
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     kern_params.sid = scheduler_id;
     err = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
     if(err != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "enter_scheduling_mode(): copy_to_user failed to copy %d bytes\n", err);
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_to_user failed to copy %d bytes\n", err);
         return err;
     }
 
@@ -225,7 +221,6 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->stack_ptr = scheduler->regs.sp;
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Entry_point: %ld: \n", kern_params.entry_point);
     process->scheduler_list->scheduler_count++;
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
@@ -235,8 +230,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 
 int exit_scheduling_mode(void)
 {
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "Called exit_scheduling_mode()\n");
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "INFO: pid: %d, tgid: %d.\n", current->pid, current->tgid);
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_scheduling_mode()\n");
     
     scheduler_t *scheduler;
     process_t *process;
@@ -388,7 +382,7 @@ int delete_process(process_t *proc)
     proc_list.process_count--;
     kfree(proc);
     ret = UMS_SUCCESS;
-    
+
  out:
     return ret;
 }
@@ -401,7 +395,7 @@ int delete_completion_lists_and_worker_threads(process_t *proc)
         completion_list_node_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc->completion_lists->list, list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " Completion list:%d was deleted.\n", temp->clid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Completion list:%d was deleted.\n", temp->clid);
 
             if(temp->idle_list->worker_count > 0) delete_workers_from_completion_list(temp->idle_list);
             if(temp->busy_list->worker_count > 0) delete_workers_from_completion_list(temp->busy_list);
@@ -426,7 +420,7 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, local_list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " Worker thread:%d was deleted.\n", temp->wid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
 
             list_del(&temp->local_list);
             list_del(&temp->global_list);
@@ -445,7 +439,7 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, global_list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " Worker thread:%d was deleted.\n", temp->wid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
 
             list_del(&temp->global_list);
             kfree(temp);
@@ -463,7 +457,7 @@ int delete_schedulers(process_t *proc)
         scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG " Scheduler:%d was deleted.\n", temp->sid);
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Scheduler:%d was deleted.\n", temp->sid);
 
             list_del(&temp->list);
             kfree(temp);
