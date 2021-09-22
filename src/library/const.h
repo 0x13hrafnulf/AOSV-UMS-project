@@ -19,6 +19,7 @@
 #define UMS_ERROR_COMPLETION_LIST_NOT_FOUND 1002
 #define UMS_ERROR_SCHEDULER_NOT_FOUND       1003
 #define UMS_ERROR_WORKER_NOT_FOUND          1004
+#define UMS_ERROR_STATE_RUNNING             1005
 
 typedef enum state {
     IDLE,

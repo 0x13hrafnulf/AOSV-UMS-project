@@ -349,15 +349,48 @@ worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
     return worker;
 }
 
+state_t check_schedulers_state(process_t *proc)
+{
+    state_t progress = FINISHED;
+
+    if(!list_empty(&proc->scheduler_list->list))
+    {
+        scheduler_t *temp = NULL;
+        scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        {
+            
+            if(temp->state == RUNNING || temp->state == IDLE) 
+            {
+                progress = temp->state;
+                break;
+            }
+
+        }
+    }
+    return progress;
+}
+
 int delete_process(process_t *proc)
 {
+    int ret;
+    state_t progress = check_schedulers_state(proc);
+
+    if(progress != FINISHED)
+    {
+        ret = -UMS_ERROR_STATE_RUNNING;
+        goto out;
+    }
+
     delete_completion_lists_and_worker_threads(proc);
     delete_schedulers(proc);
     list_del(&proc->list);
     proc_list.process_count--;
     kfree(proc);
- 
-    return UMS_SUCCESS;
+    ret = UMS_SUCCESS;
+    
+ out:
+    return ret;
 }
 
 int delete_completion_lists_and_worker_threads(process_t *proc)
