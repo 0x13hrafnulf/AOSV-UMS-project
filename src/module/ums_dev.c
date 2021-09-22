@@ -60,6 +60,7 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 
     out:
     printk(KERN_INFO UMS_MODULE_NAME_LOG "> IOCTL_END: pid: %d, tgid: %d, IOCTL:%d => return_value: %d\n",  current->pid, current->tgid, cmd, ret);
+    printk(KERN_INFO UMS_MODULE_NAME_LOG ">-----------------------------------------------------------\n",  current->pid, current->tgid, cmd, ret);
     spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
 	return ret;
 }
@@ -73,11 +74,11 @@ static int __init init_dev(void)
     ret = misc_register(&dev_ums);
     if (ret < 0)
     {
-        printk(KERN_ERR UMS_MODULE_NAME_LOG "-Registration of device " UMS_DEVICE " has failed.\n");
+        printk(KERN_ERR UMS_MODULE_NAME_LOG "- Registration of device " UMS_DEVICE " has failed.\n");
         return -UMS_ERROR;
     }
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "-Device " UMS_DEVICE " has been successfully registered.\n");
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "- Device " UMS_DEVICE " has been successfully registered.\n");
 
     return UMS_SUCCESS;
 }
