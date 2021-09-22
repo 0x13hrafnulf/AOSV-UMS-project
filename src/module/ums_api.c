@@ -30,7 +30,7 @@ int exit_ums(void)
     proc = check_if_process_exists(current->pid);
     if(proc == NULL)
     {
-        return -UMS_ERROR_PROCESS_NOT_FOUND;
+        return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
     delete_process(proc);

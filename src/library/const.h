@@ -12,14 +12,15 @@
 #define UMS_ENTER_SCHEDULING_MODE           _IOW(UMS_IOC_MAGIC, 5, unsigned long)
 #define UMS_EXIT_SCHEDULING_MODE            _IO(UMS_IOC_MAGIC, 6)
 
-#define UMS_SUCCESS                         0
-#define UMS_ERROR                           1
-#define UMS_ERROR_PROCESS_NOT_FOUND         1000
-#define UMS_ERROR_PROCESS_ALREADY_EXISTS    1001
-#define UMS_ERROR_COMPLETION_LIST_NOT_FOUND 1002
-#define UMS_ERROR_SCHEDULER_NOT_FOUND       1003
-#define UMS_ERROR_WORKER_NOT_FOUND          1004
-#define UMS_ERROR_STATE_RUNNING             1005
+#define UMS_SUCCESS                                         0
+#define UMS_ERROR                                           1
+#define UMS_ERROR_PROCESS_NOT_FOUND                         1000
+#define UMS_ERROR_PROCESS_ALREADY_EXISTS                    1001
+#define UMS_ERROR_COMPLETION_LIST_NOT_FOUND                 1002
+#define UMS_ERROR_SCHEDULER_NOT_FOUND                       1003
+#define UMS_ERROR_WORKER_NOT_FOUND                          1004
+#define UMS_ERROR_STATE_RUNNING                             1005
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD          1006 || UMS_ERROR_PROCESS_NOT_FOUND
 
 typedef enum state {
     IDLE,
