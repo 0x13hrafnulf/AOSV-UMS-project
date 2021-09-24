@@ -58,6 +58,17 @@ int ums_exit()
         }
     }
 
+    int ret;
+    do
+    {
+       ret = ums_exit_helper();
+    } while (ret != UMS_SUCCESS);
+
+    return ret;
+}
+
+int ums_exit_helper()
+{
     int ret = open_device();
     if(ret < 0)
     {
@@ -267,7 +278,7 @@ int cleanup()
         list_for_each_entry_safe(temp, safe_temp, &completion_lists.list, list) 
         {
             list_del(&temp->list);
-            printf("UMS_EXAMPLE: Completion list:%d was deleted.\n", temp->clid);
+            printf("UMS_LIB: Completion list:%d was deleted.\n", temp->clid);
             if(temp->list_params != NULL) delete(temp->list_params);
             delete(temp);
         }
@@ -279,7 +290,7 @@ int cleanup()
         list_for_each_entry_safe(temp, safe_temp, &workers.list, list) 
         {
             list_del(&temp->list);
-            printf("UMS_EXAMPLE: Worker thread:%d  was deleted.\n", temp->wid);
+            printf("UMS_LIB: Worker thread:%d  was deleted.\n", temp->wid);
             delete((void*)temp->worker_params->stack_addr);
             delete(temp->worker_params);
             delete(temp);
@@ -292,7 +303,7 @@ int cleanup()
         list_for_each_entry_safe(temp, safe_temp, &schedulers.list, list) 
         {
             list_del(&temp->list);
-            printf("UMS_EXAMPLE: Scheduler:%d  was deleted.\n", temp->sched_params->sid);
+            printf("UMS_LIB: Scheduler:%d  was deleted.\n", temp->sched_params->sid);
             delete(temp->sched_params);
             delete(temp);
         }

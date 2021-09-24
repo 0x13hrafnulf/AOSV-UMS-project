@@ -15,6 +15,7 @@ typedef struct ums_scheduler ums_scheduler_t;
 
 int ums_enter();
 int ums_exit();
+int ums_exit_helper();
 ums_clid_t ums_create_completion_list();
 ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, void (*entry_point)(void *), void *args);
 ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *));
