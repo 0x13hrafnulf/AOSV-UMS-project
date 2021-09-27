@@ -58,17 +58,6 @@ int ums_exit()
         }
     }
 
-    int ret;
-    do
-    {
-       ret = ums_exit_helper();
-    } while (ret != UMS_SUCCESS);
-
-    return ret;
-}
-
-int ums_exit_helper()
-{
     int ret = open_device();
     if(ret < 0)
     {
@@ -168,7 +157,10 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
         delete(params);
         return -1;
     }
-    params->stack_addr = (unsigned long)stack;
+
+    params->stack_addr = (unsigned long)stack + stack_size;
+    //((unsigned long *)params->stack_addr)[0] = (unsigned long)&ums_thread_exit;
+    //params->stack_addr -= 8;
 
     ret = open_device();
     if(ret < 0)
@@ -291,7 +283,7 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_LIB: Worker thread:%d  was deleted.\n", temp->wid);
-            delete((void*)temp->worker_params->stack_addr);
+            delete((void*)(temp->worker_params->stack_addr - temp->worker_params->stack_size));
             delete(temp->worker_params);
             delete(temp);
         }
@@ -339,6 +331,5 @@ __attribute__((constructor)) void start(void)
 
 __attribute__((destructor)) void end(void)
 {
-    close_device();
-    cleanup();
+    ums_exit();
 }
