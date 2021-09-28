@@ -29,13 +29,13 @@ int ums_enter()
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_enter() => Error# = %d\n", errno);
+        printf("Error: ums_enter() => UMS_DEVICE => Error#  = %d\n", errno);
         return -UMS_ERROR;
     }
     ret = ioctl(ums_dev, UMS_ENTER);
     if(ret < 0)
     {
-        printf("Error: ums_enter() => Error# = %d\n", errno);
+        printf("Error: ums_enter()  => IOCTL => Error# = %d\n", errno);
         return -UMS_ERROR;
     }
     return ret;
@@ -43,6 +43,7 @@ int ums_enter()
 
 int ums_exit()
 {
+    printf("UMS_LIB: ums_exit() invoked.\n");
     if(!list_empty(&schedulers.list))
     {
         ums_scheduler_t *temp = NULL;
@@ -53,7 +54,7 @@ int ums_exit()
             if(ret < 0)
             {
                 printf("Error: ums_create_scheduler() => Error# = %d\n", errno);
-                return -1;
+                goto out;
             }
         }
     }
@@ -61,16 +62,19 @@ int ums_exit()
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_exit() => Error# = %d\n", errno);
+        printf("Error: ums_exit() => UMS_DEVICE => Error# = %d\n", errno);
         return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_EXIT);
+    printf("UMS_LIB: ums_exit() => ioctl_ret = %d.\n", ret);
     if(ret < 0)
     {
-        printf("Error: ums_exit() => Error# = %d\n", errno);
-        return -UMS_ERROR;
-    }   
+        printf("Error: ums_exit() => IOCTL => Error# = %d, ret_val = %d\n", errno, ret);
+        goto out;
+    }
+
+    out:
     close_device(ums_dev);
     cleanup();
     return ret;
@@ -110,13 +114,13 @@ ums_clid_t ums_create_completion_list()
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_create_completion_list() => Error# = %d\n", errno);
+        printf("Error: ums_create_completion_list() => UMS_DEVICE => Error# = %d\n", errno);
         return -1;
     }
     ret = ioctl(ums_dev, UMS_CREATE_LIST);
     if(ret < 0)
     {
-        printf("Error: ums_create_completion_list() => Error# = %d\n", errno);
+        printf("Error: ums_create_completion_list()  => IOCTL => Error# = %d\n", errno);
         return -1;
     }
     ums_completion_list_node_t *comp_list;
@@ -165,8 +169,8 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
-        delete((void*)params->stack_addr);
+        printf("Error: ums_create_worker_thread() => UMS_DEVICE => Error# = %d\n", errno);
+        delete((void*)(params->stack_addr - stack_size));
         delete(params);
         return -1;
     }
@@ -174,8 +178,8 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     ret = ioctl(ums_dev, UMS_CREATE_WORKER, (unsigned long)params);
     if(ret < 0)
     {
-        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
-        delete((void*)params->stack_addr);
+        printf("Error: ums_create_worker_thread() => IOCTL => Error# = %d\n", errno);
+        delete((void*)(params->stack_addr - stack_size));
         delete(params);
         return -1;
     }
@@ -213,7 +217,7 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *)scheduler->sched_params);
     if(ret < 0)
     {
-        printf("Error: ums_create_scheduler() => Error# = %d\n", errno);
+        printf("Error: ums_create_scheduler() => pthread_create() => Error# = %d\n", errno);
         delete(params);
         return -1;
     }
@@ -229,14 +233,14 @@ void *ums_enter_scheduling_mode(void *args)
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
+        printf("Error: ums_create_worker_thread() => UMS_DEVICE => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
 
     ret = ioctl(ums_dev, UMS_ENTER_SCHEDULING_MODE, (unsigned long)params);
     if(ret < 0)
     {
-        printf("Error: ums_enter_scheduling_mode() => Error# = %d\n", errno);
+        printf("Error: ums_enter_scheduling_mode() => IOCTL => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
 
@@ -248,14 +252,14 @@ int ums_exit_scheduling_mode()
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_exit_scheduling_mode() => Error# = %d\n", errno);
+        printf("Error: ums_exit_scheduling_mode() => UMS_DEVICE => Error# = %d\n", errno);
         return -1;
     }
 
     ret = ioctl(ums_dev, UMS_EXIT_SCHEDULING_MODE);
     if(ret < 0)
     {
-        printf("Error: ums_exit_scheduling_mode() => Error# = %d\n", errno);
+        printf("Error: ums_exit_scheduling_mode() => IOCTL => Error# = %d\n", errno);
         return -1;
     }   
     return ret;
@@ -283,8 +287,8 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_LIB: Worker thread:%d  was deleted.\n", temp->wid);
-            delete((void*)(temp->worker_params->stack_addr - temp->worker_params->stack_size));
-            delete(temp->worker_params);
+            if(temp->worker_params->stack_addr != NULL) delete((void*)(temp->worker_params->stack_addr - temp->worker_params->stack_size));
+            if(temp->worker_params != NULL) delete(temp->worker_params);
             delete(temp);
         }
     }
@@ -296,7 +300,7 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_LIB: Scheduler:%d  was deleted.\n", temp->sched_params->sid);
-            delete(temp->sched_params);
+            if(temp->sched_params != NULL) delete(temp->sched_params);
             delete(temp);
         }
     }
@@ -331,5 +335,6 @@ __attribute__((constructor)) void start(void)
 
 __attribute__((destructor)) void end(void)
 {
-    ums_exit();
+    cleanup();
+    close_device();
 }

@@ -33,7 +33,9 @@ int exit_ums(void)
         return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
+    spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
     delete_process(proc);
+    spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
 
     return UMS_SUCCESS;
 }
@@ -43,7 +45,7 @@ process_t *create_process_node(pid_t pid)
     process_t *proc;
 
     proc = kmalloc(sizeof(process_t), GFP_KERNEL);
-    list_add_tail(&(proc->list), &proc_list.list);
+    list_add_tail(&proc->list, &proc_list.list);
 
     proc_list.process_count++;
     proc->pid = current->pid;
@@ -373,6 +375,7 @@ int delete_process(process_t *proc)
     if(progress != FINISHED)
     {
         ret = -UMS_ERROR_STATE_RUNNING;
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: delete_process() => Schedulers are still running.\n");
         goto out;
     }
 
@@ -407,7 +410,7 @@ int delete_completion_lists_and_worker_threads(process_t *proc)
     }
     list_del(&proc->completion_lists->list);
     kfree(proc->completion_lists);
-    //delete_workers_from_process_list(proc->worker_list);
+    delete_workers_from_process_list(proc->worker_list);
     kfree(proc->worker_list);
     return UMS_SUCCESS;
 }
