@@ -33,9 +33,9 @@ int exit_ums(void)
         return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
-    spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
+    //spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
     delete_process(proc);
-    spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
+    //spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
 
     return UMS_SUCCESS;
 }
