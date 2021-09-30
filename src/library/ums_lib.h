@@ -6,7 +6,7 @@
 
 #define UMS_DEVICE "/dev/ums"
 
-typedef struct ums_comletion_list ums_comletion_list_t;
+typedef struct ums_completion_list ums_completion_list_t;
 typedef struct ums_completion_list_node ums_completion_list_node_t;
 typedef struct ums_worker ums_worker_t;
 typedef struct ums_worker_list ums_worker_list_t;
@@ -31,10 +31,10 @@ int close_device();
 int cleanup();
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
 
-typedef struct ums_comletion_list {
+typedef struct ums_completion_list {
     struct list_head list;
     unsigned int count;
-} ums_comletion_list_t;
+} ums_completion_list_t;
 
 typedef struct ums_completion_list_node {
     ums_clid_t clid;

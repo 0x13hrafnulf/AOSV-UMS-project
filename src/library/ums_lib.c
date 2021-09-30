@@ -9,7 +9,7 @@
 
 int ums_dev = -1;
 pthread_mutex_t ums_mutex = PTHREAD_MUTEX_INITIALIZER;
-ums_comletion_list_t completion_lists = {
+ums_completion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
     .count = 0
 };
