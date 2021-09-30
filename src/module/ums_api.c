@@ -261,6 +261,16 @@ int exit_scheduling_mode(void)
     return UMS_SUCCESS;
 }
 
+int execute_thread(ums_wid_t worker_id)
+{
+    return UMS_SUCCESS;
+}
+
+int thread_yield(worker_status_t status)
+{
+    return UMS_SUCCESS;
+}
+
 process_t *check_if_process_exists(pid_t pid)
 {
     process_t *proc = NULL;
