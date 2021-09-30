@@ -14,6 +14,8 @@
 #define UMS_CREATE_WORKER                   _IOW(UMS_IOC_MAGIC, 4, unsigned long)
 #define UMS_ENTER_SCHEDULING_MODE           _IOW(UMS_IOC_MAGIC, 5, unsigned long)
 #define UMS_EXIT_SCHEDULING_MODE            _IO(UMS_IOC_MAGIC, 6)
+#define UMS_EXECUTE_THREAD                  _IOW(UMS_IOC_MAGIC, 7, unsigned long)
+#define UMS_THREAD_YIELD                    _IOW(UMS_IOC_MAGIC, 8, unsigned long)
 
 #define UMS_SUCCESS                                         0
 #define UMS_ERROR                                           1
@@ -24,6 +26,10 @@
 #define UMS_ERROR_WORKER_NOT_FOUND                          1004
 #define UMS_ERROR_STATE_RUNNING                             1005
 #define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD          1006 || UMS_ERROR_PROCESS_NOT_FOUND
+#define UMS_ERROR_WORKER_ALREADY_RUNNING                    1007
+#define UMS_ERROR_WRONG_INPUT                               1008
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER            1009
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_WORKER               1010
 
 typedef enum state {
     IDLE,

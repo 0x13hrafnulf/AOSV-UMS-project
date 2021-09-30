@@ -21,6 +21,10 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
 ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)(void *));
 void *ums_enter_scheduling_mode(void *args);
 int ums_exit_scheduling_mode();
+int ums_execute_thread(ums_wid_t wid);
+int ums_thread_yield();
+int ums_thread_pause();
+int ums_thread_exit();
 
 int open_device();
 int close_device();

@@ -30,6 +30,8 @@ ums_clid_t create_completion_list(void);
 ums_wid_t create_worker_thread(worker_params_t *params);
 ums_sid_t enter_scheduling_mode(scheduler_params_t *params);
 int exit_scheduling_mode(void);
+int execute_thread(ums_wid_t worker_id);
+int thread_yield(worker_status_t status);
 
 int delete_process(process_t *proc);
 int delete_completion_lists_and_worker_threads(process_t *proc);

@@ -265,6 +265,61 @@ int ums_exit_scheduling_mode()
     return ret;
 }
 
+int ums_execute_thread(ums_wid_t wid) 
+{
+    
+    if(check_if_worker_exists(wid) == UMS_ERROR_WORKER_NOT_FOUND)
+    {
+        printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
+        return -1;
+    }
+
+    int ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        return -1;
+    }
+
+    ret = ioctl(ums_dev, UMS_EXECUTE_THREAD, (unsigned long)wid);
+    if(ret < 0)
+    {
+        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        return -1;
+    }   
+
+    return ret;
+}
+
+int ums_thread_yield(worker_status_t status) 
+{
+    int ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        return -1;
+    }
+
+    ret = ioctl(ums_dev, UMS_THREAD_YIELD, (unsigned long)status);
+    if(ret < 0)
+    {
+        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        return -1;
+    }   
+
+    return ret;
+}
+
+int ums_thread_pause()
+{
+    return ums_thread_yield(PAUSE);
+}
+
+int ums_thread_exit()
+{
+    return ums_thread_yield(FINISH);
+}
+
 int cleanup()
 {
     if(!list_empty(&completion_lists.list))
@@ -326,6 +381,24 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
     }
   
     return comp_list;
+}
+
+int check_if_worker_exists(ums_wid_t wid)
+{
+    if(!list_empty(&workers.list))
+    {
+        ums_worker_t *temp = NULL;
+        ums_worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &workers.list, list) 
+        {
+            if(temp->wid == wid)
+            {
+                return UMS_SUCCESS;
+            }
+        }
+    }
+  
+    return UMS_ERROR_WORKER_NOT_FOUND;
 }
 
 __attribute__((constructor)) void start(void)
