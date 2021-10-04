@@ -15,14 +15,14 @@ void loop()
 void function1(void *args)
 {
     printf("UMS_EXAMPLE: %s\n", __FUNCTION__);
-    printf("UMS_EXAMPLE: args = %d\n", *args);
+    printf("UMS_EXAMPLE: args = %d\n", *(int*)args);
     for(int i = 0; i < 5; ++i)
     {
         printf("UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);
     }
     ums_thread_pause();
     printf("UMS_EXAMPLE: Continue: %s\n", __FUNCTION__);
-    printf("UMS_EXAMPLE: args = %d\n", *args);
+    printf("UMS_EXAMPLE: args = %d\n", *(int*)args);
     for(int i = 0; i < 5; ++i)
     {
         printf("UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);
@@ -33,7 +33,7 @@ void function1(void *args)
 void function2(void *args)
 {
     printf("UMS_EXAMPLE: %s\n", __FUNCTION__);
-    printf("UMS_EXAMPLE: args = %d\n", *args);
+    printf("UMS_EXAMPLE: args = %d\n", *(int*)args);
     for(int i = 0; i < 5; ++i)
     {
         printf("UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);

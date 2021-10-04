@@ -223,7 +223,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->stack_ptr = scheduler->regs.sp;
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
-    process->scheduler_list->scheduler_count++;
+    proc->scheduler_list->scheduler_count++;
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
 
@@ -284,7 +284,7 @@ int execute_thread(ums_wid_t worker_id)
     }
 
     comp_list = scheduler->comp_list;
-    worker = check_if_worker_exists(&comp_list->ready_list, worker_id);
+    worker = check_if_worker_exists(comp_list->idle_list, worker_id);
     if(worker == NULL)
     {
         return -UMS_ERROR_WORKER_NOT_FOUND;
@@ -307,7 +307,7 @@ int execute_thread(ums_wid_t worker_id)
 
 
     memcpy(&scheduler->regs, task_pt_regs(current), sizeof(struct pt_regs));
-    copy_fxregs_to_kernel(scheduler->fpu_regs);
+    copy_fxregs_to_kernel(&scheduler->fpu_regs);
 
     memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
     copy_kernel_to_fxregs(&worker->fpu_regs.state.fxsave);
@@ -342,7 +342,7 @@ int thread_yield(worker_status_t status)
     }
 
     comp_list = scheduler->comp_list;
-    worker = check_if_worker_exists(&comp_list->busy_list, scheduler->wid);
+    worker = check_if_worker_exists(comp_list->busy_list, scheduler->wid);
     if(worker == NULL)
     {
         return -UMS_ERROR_WORKER_NOT_FOUND;
@@ -356,13 +356,13 @@ int thread_yield(worker_status_t status)
 
     if(status == PAUSE)
     {
-        list_move_tail(&(worker->local_list), &comp_list->ready_list.list);
-        comp_list->idle_list.worker_count--;
-        comp_list->ready_list.worker_count++;
+        list_move_tail(&(worker->local_list), &comp_list->idle_list->list);
+        comp_list->busy_list->worker_count--;
+        comp_list->idle_list->worker_count++;
     }
 
     memcpy(&worker->regs, task_pt_regs(current), sizeof(struct pt_regs));
-    copy_fxregs_to_kernel(worker->fpu_regs);
+    copy_fxregs_to_kernel(&worker->fpu_regs);
 
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
     copy_kernel_to_fxregs(&scheduler->fpu_regs.state.fxsave);
