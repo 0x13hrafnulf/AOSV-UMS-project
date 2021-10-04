@@ -325,7 +325,7 @@ int thread_yield(worker_status_t status)
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
 
-    if(status != FINISH || status != PAUSE) 
+    if(status != FINISH && status != PAUSE) 
     {
         return -UMS_ERROR_WRONG_INPUT;
     }
