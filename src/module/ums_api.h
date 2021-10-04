@@ -46,7 +46,7 @@ scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid);
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid);
 state_t check_if_schedulers_state(process_t *proc);
 
-int cleanup();
+int cleanup(void);
 
 typedef struct process_list {
     struct list_head list;
