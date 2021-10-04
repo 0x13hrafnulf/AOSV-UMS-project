@@ -7,8 +7,9 @@ process_list_t proc_list = {
 
 int enter_ums(void)
 {
-    process_t *proc;
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_ums()\n");
+    
+    process_t *proc;
 
     proc = check_if_process_exists(current->pid);
     if(proc != NULL)
@@ -23,9 +24,9 @@ int enter_ums(void)
 
 int exit_ums(void)
 {
-    process_t *proc;
-
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_ums()\n");
+
+    process_t *proc;
 
     proc = check_if_process_exists(current->pid);
     if(proc == NULL)
@@ -33,10 +34,8 @@ int exit_ums(void)
         return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
-    //spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
     delete_process(proc);
-    //spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
-
+    
     return UMS_SUCCESS;
 }
 
@@ -75,9 +74,9 @@ ums_clid_t create_completion_list()
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_completion_list()\n");
 
-    ums_clid_t list_id;
     process_t *proc;
     completion_list_node_t *comp_list;
+    ums_clid_t list_id;
 
     proc = check_if_process_exists(current->pid);
     if(proc == NULL)
@@ -113,14 +112,14 @@ ums_wid_t create_worker_thread(worker_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_worker_thread()\n");
 
-    ums_wid_t worker_id;
+    process_t *proc;
     worker_t *worker;
-    process_t *process;
     completion_list_node_t *comp_list;
+    ums_wid_t worker_id;
     worker_params_t kern_params;
 
-    process = check_if_process_exists(current->pid);
-    if(process == NULL)
+    proc = check_if_process_exists(current->pid);
+    if(proc == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
@@ -132,16 +131,16 @@ ums_wid_t create_worker_thread(worker_params_t *params)
         return err;
     }
 
-    comp_list = check_if_completion_list_exists(process, kern_params.clid);
+    comp_list = check_if_completion_list_exists(proc, kern_params.clid);
     if(comp_list == NULL)
     {
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
     worker = kmalloc(sizeof(worker_t), GFP_KERNEL);
-    list_add_tail(&(worker->global_list), &process->worker_list->list);
+    list_add_tail(&(worker->global_list), &proc->worker_list->list);
 
-    worker->wid = process->worker_list->worker_count;
+    worker->wid = proc->worker_list->worker_count;
     worker->pid = -1;
     worker->tid = current->tgid;
     worker->sid = -1;
@@ -161,7 +160,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     list_add_tail(&(worker->local_list), &comp_list->idle_list->list);
     comp_list->idle_list->worker_count++;
     comp_list->worker_count++;
-    process->worker_list->worker_count++;
+    proc->worker_list->worker_count++;
 
     worker_id = worker->wid;
     return worker_id;
@@ -171,14 +170,14 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_scheduling_mode()\n");
     
-    ums_sid_t scheduler_id;
+    process_t *proc;
     scheduler_t *scheduler;
-    process_t *process;
     completion_list_node_t *comp_list;
+    ums_sid_t scheduler_id;
     scheduler_params_t kern_params;
 
-    process = check_if_process_exists(current->tgid);
-    if(process == NULL)
+    proc = check_if_process_exists(current->tgid);
+    if(proc == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
@@ -189,16 +188,17 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
         printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
         return err;
     }
-    comp_list = check_if_completion_list_exists(process, kern_params.clid);
+
+    comp_list = check_if_completion_list_exists(proc, kern_params.clid);
     if(comp_list == NULL)
     {
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
     scheduler = kmalloc(sizeof(scheduler_t), GFP_KERNEL);
-    list_add_tail(&(scheduler->list), &process->scheduler_list->list);
+    list_add_tail(&(scheduler->list), &proc->scheduler_list->list);
 
-    scheduler->sid = process->scheduler_list->scheduler_count;
+    scheduler->sid = proc->scheduler_list->scheduler_count;
     scheduler->pid = current->pid;
     scheduler->tid = current->tgid;
     scheduler->wid = -1;
@@ -234,15 +234,16 @@ int exit_scheduling_mode(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_scheduling_mode()\n");
     
+    process_t *proc;
     scheduler_t *scheduler;
-    process_t *process;
-    process = check_if_process_exists(current->tgid);
-    if(process == NULL)
+    
+    proc = check_if_process_exists(current->tgid);
+    if(proc == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(process, current->pid);
+    scheduler = check_if_scheduler_exists(proc, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -263,11 +264,109 @@ int exit_scheduling_mode(void)
 
 int execute_thread(ums_wid_t worker_id)
 {
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of execute_thread()\n");
+
+    process_t *proc;
+    worker_t *worker;
+    scheduler_t *scheduler;
+    completion_list_node_t *comp_list;
+
+    proc = check_if_process_exists(current->tgid);
+    if(proc == NULL)
+    {
+        return -UMS_ERROR_PROCESS_NOT_FOUND;
+    }
+
+    scheduler = check_if_scheduler_exists(proc, current->pid);
+    if(scheduler == NULL)
+    {
+        return -UMS_ERROR_SCHEDULER_NOT_FOUND;
+    }
+
+    comp_list = scheduler->comp_list;
+    worker = check_if_worker_exists(&comp_list->ready_list, worker_id);
+    if(worker == NULL)
+    {
+        return -UMS_ERROR_WORKER_NOT_FOUND;
+    }
+
+    if(worker->state == RUNNING)
+    {
+        return -UMS_ERROR_WORKER_ALREADY_RUNNING;
+
+    }
+
+    worker->state = RUNNING;
+    worker->sid = scheduler->sid;
+    worker->pid = current->pid;
+    scheduler->wid = worker->wid;
+
+    list_move_tail(&(worker->local_list), &comp_list->busy_list->list);
+    comp_list->idle_list->worker_count--;
+    comp_list->busy_list->worker_count++;
+
+
+    memcpy(&scheduler->regs, task_pt_regs(current), sizeof(struct pt_regs));
+    copy_fxregs_to_kernel(scheduler->fpu_regs);
+
+    memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
+    copy_kernel_to_fxregs(&worker->fpu_regs.state.fxsave);
+
     return UMS_SUCCESS;
 }
 
 int thread_yield(worker_status_t status)
 {
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of thread_yield()\n");
+
+    process_t *proc;
+    worker_t *worker;
+    scheduler_t *scheduler;
+    completion_list_node_t *comp_list;
+
+    if(status != FINISH || status != PAUSE) 
+    {
+        return -UMS_ERROR_WRONG_INPUT;
+    }
+
+    proc = check_if_process_exists(current->tgid);
+    if(proc == NULL)
+    {
+        return -UMS_ERROR_PROCESS_NOT_FOUND;
+    }
+
+    scheduler = check_if_scheduler_exists(proc, current->pid);
+    if(scheduler == NULL)
+    {
+        return -UMS_ERROR_SCHEDULER_NOT_FOUND;
+    }
+
+    comp_list = scheduler->comp_list;
+    worker = check_if_worker_exists(&comp_list->busy_list, scheduler->wid);
+    if(worker == NULL)
+    {
+        return -UMS_ERROR_WORKER_NOT_FOUND;
+    }
+
+    worker->state = (status == PAUSE) ? IDLE : FINISHED;
+    worker->sid = -1;
+    worker->pid = -1;
+    scheduler->wid = -1;
+    comp_list->finished_count = (status == PAUSE) ? comp_list->finished_count : comp_list->finished_count + 1;
+
+    if(status == PAUSE)
+    {
+        list_move_tail(&(worker->local_list), &comp_list->ready_list.list);
+        comp_list->idle_list.worker_count--;
+        comp_list->ready_list.worker_count++;
+    }
+
+    memcpy(&worker->regs, task_pt_regs(current), sizeof(struct pt_regs));
+    copy_fxregs_to_kernel(worker->fpu_regs);
+
+    memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+    copy_kernel_to_fxregs(&scheduler->fpu_regs.state.fxsave);
+
     return UMS_SUCCESS;
 }
 
