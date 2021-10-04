@@ -16,6 +16,7 @@
 #define UMS_EXIT_SCHEDULING_MODE            _IO(UMS_IOC_MAGIC, 6)
 #define UMS_EXECUTE_THREAD                  _IOW(UMS_IOC_MAGIC, 7, unsigned long)
 #define UMS_THREAD_YIELD                    _IOW(UMS_IOC_MAGIC, 8, unsigned long)
+#define UMS_DEQUEUE_COMPLETION_LIST_ITEMS   _IOWR(UMS_IOC_MAGIC, 9, unsigned long)
 
 #define UMS_SUCCESS                                         0
 #define UMS_ERROR                                           1

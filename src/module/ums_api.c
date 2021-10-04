@@ -371,6 +371,11 @@ int thread_yield(worker_status_t status)
     return UMS_SUCCESS;
 }
 
+int dequeue_completion_list_items(ready_list_t *params)
+{
+    return UMS_SUCCESS;
+}
+
 process_t *check_if_process_exists(pid_t pid)
 {
     process_t *proc = NULL;

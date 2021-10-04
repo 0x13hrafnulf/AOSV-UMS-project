@@ -60,6 +60,9 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
         case UMS_THREAD_YIELD:
             ret = thread_yield((worker_status_t)arg);
             goto out;
+        case UMS_DEQUEUE_COMPLETION_LIST_ITEMS:
+            ret = dequeue_completion_list_items((list_params_t*)arg);
+            goto out;
         default:
             goto out;
 	}

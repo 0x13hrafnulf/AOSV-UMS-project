@@ -320,6 +320,16 @@ int ums_thread_exit()
     return ums_thread_yield(FINISH);
 }
 
+list_params_t *ums_dequeue_completion_list_items()
+{
+
+}
+
+ums_wid_t ums_get_next_worker_thread(list_params_t *list)
+{
+    
+}
+
 int cleanup()
 {
     if(!list_empty(&completion_lists.list))

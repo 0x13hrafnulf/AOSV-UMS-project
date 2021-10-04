@@ -25,6 +25,8 @@ int ums_execute_thread(ums_wid_t wid);
 int ums_thread_yield();
 int ums_thread_pause();
 int ums_thread_exit();
+list_params_t *ums_dequeue_completion_list_items();
+ums_wid_t ums_get_next_worker_thread(list_params_t *list);
 
 int open_device();
 int close_device();
