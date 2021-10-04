@@ -319,6 +319,7 @@ int thread_yield(worker_status_t status)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of thread_yield()\n");
 
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", status);
     process_t *proc;
     worker_t *worker;
     scheduler_t *scheduler;
@@ -577,5 +578,21 @@ int delete_schedulers(process_t *proc)
     }
     list_del(&proc->scheduler_list->list);
     kfree(proc->scheduler_list);
+    return UMS_SUCCESS;
+}
+
+int cleanup()
+{
+
+    if(!list_empty(&proc_list.list))
+    {
+        process_t *temp = NULL;
+        process_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &proc_list.list, list) 
+        {
+            delete_process(temp);
+        }
+    }
+
     return UMS_SUCCESS;
 }

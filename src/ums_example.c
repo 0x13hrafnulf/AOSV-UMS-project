@@ -5,9 +5,9 @@
 void loop()
 {
     printf("UMS_EXAMPLE: %s\n", __FUNCTION__);
+    ums_execute_thread(0);
     ums_execute_thread(1);
-    ums_execute_thread(2);
-    ums_execute_thread(1);
+    ums_execute_thread(0);
 
     ums_exit_scheduling_mode();
 }
