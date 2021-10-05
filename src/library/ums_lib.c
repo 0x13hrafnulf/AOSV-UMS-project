@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-int ums_dev = -1;
+int ums_dev = -UMS_ERROR;
 pthread_mutex_t ums_mutex = PTHREAD_MUTEX_INITIALIZER;
 ums_completion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
@@ -115,13 +115,13 @@ ums_clid_t ums_create_completion_list()
     if(ret < 0)
     {
         printf("Error: ums_create_completion_list() => UMS_DEVICE => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }
     ret = ioctl(ums_dev, UMS_CREATE_LIST);
     if(ret < 0)
     {
         printf("Error: ums_create_completion_list()  => IOCTL => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }
     ums_completion_list_node_t *comp_list;
     comp_list = init(ums_completion_list_node_t);
@@ -142,7 +142,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     if(comp_list == NULL)
     {
         printf("Error: ums_create_worker_thread() => Completion list:%d does not exist.\n", (int)clid);
-        return -1;
+        return -UMS_ERROR;
     }
 
     worker_params_t *params;
@@ -159,7 +159,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     {
         printf("Error: ums_create_worker_thread() => Error# = %d\n", errno);
         delete(params);
-        return -1;
+        return -UMS_ERROR;
     }
 
     params->stack_addr = (unsigned long)stack + stack_size;
@@ -172,7 +172,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
         printf("Error: ums_create_worker_thread() => UMS_DEVICE => Error# = %d\n", errno);
         delete((void*)(params->stack_addr - stack_size));
         delete(params);
-        return -1;
+        return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_CREATE_WORKER, (unsigned long)params);
@@ -181,7 +181,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
         printf("Error: ums_create_worker_thread() => IOCTL => Error# = %d\n", errno);
         delete((void*)(params->stack_addr - stack_size));
         delete(params);
-        return -1;
+        return -UMS_ERROR;
     }
 
     worker = init(ums_worker_t);
@@ -202,7 +202,7 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     if(comp_list == NULL)
     {
         printf("Error: ums_create_scheduler() => Completion list:%d does not exist.\n", (int)clid);
-        return -1;
+        return -UMS_ERROR;
     }
     scheduler_params_t *params;
     params = init(scheduler_params_t);
@@ -219,7 +219,7 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     {
         printf("Error: ums_create_scheduler() => pthread_create() => Error# = %d\n", errno);
         delete(params);
-        return -1;
+        return -UMS_ERROR;
     }
 
     return ret;
@@ -253,14 +253,14 @@ int ums_exit_scheduling_mode()
     if(ret < 0)
     {
         printf("Error: ums_exit_scheduling_mode() => UMS_DEVICE => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_EXIT_SCHEDULING_MODE);
     if(ret < 0)
     {
         printf("Error: ums_exit_scheduling_mode() => IOCTL => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }   
     return ret;
 }
@@ -271,21 +271,21 @@ int ums_execute_thread(ums_wid_t wid)
     if(check_if_worker_exists(wid) == UMS_ERROR_WORKER_NOT_FOUND)
     {
         printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
-        return -1;
+        return -UMS_ERROR;
     }
 
     int ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_execute_thread() => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_EXECUTE_THREAD, (unsigned long)wid);
     if(ret < 0)
     {
         printf("Error: ums_execute_thread() => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }   
 
     return ret;
@@ -297,14 +297,14 @@ int ums_thread_yield(worker_status_t status)
     if(ret < 0)
     {
         printf("Error: ums_execute_thread() => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_THREAD_YIELD, (unsigned long)status);
     if(ret < 0)
     {
         printf("Error: ums_execute_thread() => Error# = %d\n", errno);
-        return -1;
+        return -UMS_ERROR;
     }   
 
     return ret;
@@ -322,12 +322,59 @@ int ums_thread_exit()
 
 list_params_t *ums_dequeue_completion_list_items()
 {
+    list_params_t *list;
+    ums_completion_list_node_t *comp_list;
+    comp_list = check_if_completion_list_exists(completion_list_id);
+    if(comp_list == NULL)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)comp_list->clid);
+        return -UMS_ERROR;
+    }
 
+    list = comp_list->list_params;
+    if(list == NULL)
+    {
+        list = create_list_params(comp_list->worker_count);
+        list->size = comp_list->worker_count;
+        comp_list->list_params = list;
+    }
+
+    list->worker_count = 0;
+    int ret = open_device();
+    if(ret < 0)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Error# = %d\n", errno);
+        comp_list->list_params = NULL;
+        delete(list);
+        return -UMS_ERROR;
+    }
+
+    ret = ioctl(ums_dev, UMS_DEQUEUE_COMPLETION_LIST_ITEMS, (unsigned long)list);
+    if(ret < 0)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Error# = %d\n", errno);
+        comp_list->list_params = NULL;
+        delete(list);
+        return -UMS_ERROR;
+    }   
+
+    return list;
 }
 
 ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 {
-    
+    if(list->state == FINISHED)
+    {
+        printf("Error: get_next_worker_thread() => Completion list is finished!\n");
+        return ums_exit_scheduling_mode();
+    }
+    else if(list->worker_count == 0)
+    {
+        printf("Error: get_next_worker_thread() => No available worker threads to run!\n");
+        return -1;
+    }
+
+    return list->workers[0];
 }
 
 int cleanup()

@@ -69,3 +69,4 @@ typedef struct ums_scheduler {
 
 #define init(type) (type*)malloc(sizeof(type))
 #define delete(val) free(val)
+#define create_list_params(size) (list_params_t*)malloc(sizeof(list_params_t) + size * sizeof(ums_wid_t))

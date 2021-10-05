@@ -371,7 +371,7 @@ int thread_yield(worker_status_t status)
     return UMS_SUCCESS;
 }
 
-int dequeue_completion_list_items(ready_list_t *params)
+int dequeue_completion_list_items(list_params_t *params)
 {
     return UMS_SUCCESS;
 }
