@@ -295,6 +295,11 @@ int execute_thread(ums_wid_t worker_id)
         return -UMS_ERROR_WORKER_ALREADY_RUNNING;
 
     }
+    if(worker->state == FINISHED)
+    {
+        return -UMS_ERROR_WORKER_ALREADY_FINISHED;
+
+    }
 
     worker->state = RUNNING;
     worker->sid = scheduler->sid;

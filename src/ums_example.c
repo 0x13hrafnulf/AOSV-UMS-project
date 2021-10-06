@@ -5,9 +5,13 @@
 void loop()
 {
     printf("UMS_EXAMPLE: %s\n", __FUNCTION__);
-    ums_execute_thread(0);
-    ums_execute_thread(1);
-    ums_execute_thread(0);
+
+    list_params_t *ready_list = dequeue_completion_list_items;
+    ums_wid_t worker_id = get_next_worker_thread(ready_list);
+    while(ready_list->state != FINISHED)
+    {
+        ums_execute_thread(worker_id);
+    }
 
     ums_exit_scheduling_mode();
 }

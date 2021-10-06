@@ -277,14 +277,14 @@ int ums_execute_thread(ums_wid_t wid)
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        printf("Error: ums_execute_thread() => UMS_DEVICE => Error# = %d\n", errno);
         return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_EXECUTE_THREAD, (unsigned long)wid);
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        printf("Error: ums_execute_thread() => IOCTL => Error# = %d\n", errno);
         return -UMS_ERROR;
     }   
 
@@ -296,14 +296,14 @@ int ums_thread_yield(worker_status_t status)
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        printf("Error: ums_execute_thread() => UMS_DEVICE => Error# = %d\n", errno);
         return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_THREAD_YIELD, (unsigned long)status);
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => Error# = %d\n", errno);
+        printf("Error: ums_execute_thread() => IOCTL => Error# = %d\n", errno);
         return -UMS_ERROR;
     }   
 
@@ -343,7 +343,7 @@ list_params_t *ums_dequeue_completion_list_items()
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Error# = %d\n", errno);
+        printf("Error: ums_dequeue_completion_list_items() => UMS_DEVICE => Error# = %d\n", errno);
         comp_list->list_params = NULL;
         delete(list);
         return -UMS_ERROR;
@@ -352,7 +352,7 @@ list_params_t *ums_dequeue_completion_list_items()
     ret = ioctl(ums_dev, UMS_DEQUEUE_COMPLETION_LIST_ITEMS, (unsigned long)list);
     if(ret < 0)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Error# = %d\n", errno);
+        printf("Error: ums_dequeue_completion_list_items() => IOCTL => Error# = %d\n", errno);
         comp_list->list_params = NULL;
         delete(list);
         return -UMS_ERROR;
@@ -366,12 +366,12 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     if(list->state == FINISHED)
     {
         printf("Error: get_next_worker_thread() => Completion list is finished!\n");
-        return ums_exit_scheduling_mode();
+        return -UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED;
     }
     else if(list->worker_count == 0)
     {
         printf("Error: get_next_worker_thread() => No available worker threads to run!\n");
-        return -1;
+        return -UMS_ERROR_NO_AVAILABLE_WORKERS;
     }
 
     return list->workers[0];

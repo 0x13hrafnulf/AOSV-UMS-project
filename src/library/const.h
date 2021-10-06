@@ -28,6 +28,9 @@
 #define UMS_ERROR_WRONG_INPUT                               1008
 #define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER            1009
 #define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_WORKER               1010
+#define UMS_ERROR_WORKER_ALREADY_FINISHED                   1011
+#define UMS_ERROR_NO_AVAILABLE_WORKERS                      1012
+#define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED          1013
 
 typedef enum state {
     IDLE,
