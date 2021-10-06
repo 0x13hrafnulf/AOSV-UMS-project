@@ -373,6 +373,68 @@ int thread_yield(worker_status_t status)
 
 int dequeue_completion_list_items(list_params_t *params)
 {
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of dequeue_completion_list_items()\n");
+
+    process_t *proc;
+    worker_t *worker;
+    scheduler_t *scheduler;
+    completion_list_node_t *comp_list;
+    list_params_t kern_params;
+    unsigned int size;
+
+    proc = check_if_process_exists(current->tgid);
+    if(proc == NULL)
+    {
+        return -UMS_ERROR_PROCESS_NOT_FOUND;
+    }
+    
+    int err = copy_from_user(&size, params, sizeof(unsigned int));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
+        return err;
+    }
+
+    err = copy_from_user(&kern_params, params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
+        return err;
+    }
+
+    scheduler = check_if_scheduler_exists(proc, current->pid);
+    if(scheduler == NULL)
+    {
+        return -UMS_ERROR_SCHEDULER_NOT_FOUND;
+    }
+
+    comp_list = scheduler->comp_list;
+
+    kern_params->state = comp_list->finished_count == comp_list->worker_count ? FINISHED : IDLE;
+
+    unsigned int count = 0;
+    
+    if(!list_empty(&comp_list->idle_list->list))
+    {
+        worker_t *temp = NULL;
+        worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &comp_list->idle_list->list, list) 
+        {
+            kern_params.workers[count] = temp->wid;
+            count++;
+            if (count > size) break;
+        }
+    }
+
+    kern_params.worker_count = count;
+
+    int err = copy_to_user(params, &kern_params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_to_user failed to copy %d bytes\n", err);
+        return err;
+    }
+
     return UMS_SUCCESS;
 }
 
