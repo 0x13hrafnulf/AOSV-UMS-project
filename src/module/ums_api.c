@@ -384,7 +384,7 @@ int dequeue_completion_list_items(list_params_t *params)
     worker_t *worker;
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
-    list_params_t kern_params;
+    list_params_t *kern_params;
     unsigned int size;
 
     proc = check_if_process_exists(current->tgid);
@@ -400,21 +400,25 @@ int dequeue_completion_list_items(list_params_t *params)
         return err;
     }
 
-    err = copy_from_user(&kern_params, params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
+    kern_params = kmalloc(sizeof(list_params_t) + size * sizeof(ums_wid_t), GFP_KERNEL);
+    err = copy_from_user(kern_params, params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
     if(err != 0)
     {
         printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
+        kfree(kern_params);
         return err;
     }
 
     scheduler = check_if_scheduler_exists(proc, current->pid);
     if(scheduler == NULL)
     {
+        kfree(kern_params);
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
     }
 
     comp_list = scheduler->comp_list;
 
+    
     kern_params->state = comp_list->finished_count == comp_list->worker_count ? FINISHED : IDLE;
 
     unsigned int count = 0;
@@ -423,23 +427,26 @@ int dequeue_completion_list_items(list_params_t *params)
     {
         worker_t *temp = NULL;
         worker_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &comp_list->idle_list->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &comp_list->idle_list->list, local_list) 
         {
-            kern_params.workers[count] = temp->wid;
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", temp->state);
+            kern_params->workers[count] = temp->wid;
             count++;
             if (count > size) break;
         }
     }
 
-    kern_params.worker_count = count;
+    kern_params->worker_count = count;
 
-    int err = copy_to_user(params, &kern_params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
+    err = copy_to_user(params, kern_params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
     if(err != 0)
     {
         printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_to_user failed to copy %d bytes\n", err);
+        kfree(kern_params);
         return err;
     }
 
+    kfree(kern_params);
     return UMS_SUCCESS;
 }
 
@@ -572,6 +579,21 @@ int delete_process(process_t *proc)
     return ret;
 }
 
+int delete_process_safe(process_t *proc)
+{
+    int ret;
+
+    delete_completion_lists_and_worker_threads(proc);
+    delete_schedulers(proc);
+    list_del(&proc->list);
+    proc_list.process_count--;
+    kfree(proc);
+    ret = UMS_SUCCESS;
+
+ out:
+    return ret;
+}
+
 int delete_completion_lists_and_worker_threads(process_t *proc)
 {
     if(!list_empty(&proc->completion_lists->list))
@@ -606,7 +628,7 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, local_list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
-
+            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", temp->state);
             list_del(&temp->local_list);
             list_del(&temp->global_list);
             kfree(temp);
@@ -662,7 +684,7 @@ int cleanup()
         process_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &proc_list.list, list) 
         {
-            delete_process(temp);
+            delete_process_safe(temp);
         }
     }
 

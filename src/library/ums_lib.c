@@ -267,7 +267,6 @@ int ums_exit_scheduling_mode()
 
 int ums_execute_thread(ums_wid_t wid) 
 {
-    
     if(check_if_worker_exists(wid) == UMS_ERROR_WORKER_NOT_FOUND)
     {
         printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
