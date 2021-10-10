@@ -32,9 +32,9 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "> IOCTL_START: pid: %d, tgid: %d, IOCTL:%d\n", current->pid, current->tgid, cmd);
     spin_lock_irqsave(&spinlock_ums, spinlock_flags_ums);
-
+    printk(KERN_INFO UMS_MODULE_NAME_LOG "> IOCTL_START: pid: %d, tgid: %d, IOCTL:%d\n", current->pid, current->tgid, cmd);
+    
     switch (cmd) {
         case UMS_ENTER:
             ret = enter_ums();

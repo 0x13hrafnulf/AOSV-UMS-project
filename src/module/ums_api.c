@@ -310,7 +310,6 @@ int execute_thread(ums_wid_t worker_id)
     comp_list->idle_list->worker_count--;
     comp_list->busy_list->worker_count++;
 
-
     memcpy(&scheduler->regs, task_pt_regs(current), sizeof(struct pt_regs));
     copy_fxregs_to_kernel(&scheduler->fpu_regs);
 
@@ -324,7 +323,6 @@ int thread_yield(worker_status_t status)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of thread_yield()\n");
 
-    printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", status);
     process_t *proc;
     worker_t *worker;
     scheduler_t *scheduler;
@@ -429,7 +427,6 @@ int dequeue_completion_list_items(list_params_t *params)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &comp_list->idle_list->list, local_list) 
         {
-            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", temp->state);
             kern_params->workers[count] = temp->wid;
             count++;
             if (count > size) break;
