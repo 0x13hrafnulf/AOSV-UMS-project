@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include "ums_lib.h"
 
 #include <stdio.h>
@@ -6,6 +7,8 @@
 #include <pthread.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sched.h>
+#include <unistd.h>
 
 int ums_dev = -UMS_ERROR;
 pthread_mutex_t ums_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -130,6 +133,7 @@ ums_clid_t ums_create_completion_list()
     comp_list->worker_count = 0;
     comp_list->list_params = NULL;
     list_add_tail(&(comp_list->list), &completion_lists.list);
+    completion_lists.count++;
 
     return ret;
 }
@@ -208,11 +212,13 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     params = init(scheduler_params_t);
     params->entry_point = (unsigned long)entry_point;
     params->clid = clid;
+    params->core_id = schedulers.count;
 
     ums_scheduler_t *scheduler;
     scheduler = init(ums_scheduler_t);
     scheduler->sched_params = params;
     list_add_tail(&(scheduler->list), &schedulers.list);
+    schedulers.count++;
 
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *)scheduler->sched_params);
     if(ret < 0)
@@ -230,7 +236,29 @@ void *ums_enter_scheduling_mode(void *args)
     scheduler_params_t *params = (scheduler_params_t *)args;
     completion_list_id = params->clid;
 
-    int ret = open_device();
+    cpu_set_t set;
+    long number_of_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+    int cpu = params->core_id % number_of_cpus;
+    printf("UMS_SCHEDULER_CORE_ID = %d, CPU = %d\n", params->core_id, cpu);
+    CPU_ZERO(&set);
+    CPU_SET(cpu, &set);
+    
+    int ret = sched_setaffinity(getpid(), sizeof(cpu_set_t), &set);
+    if(ret < 0)
+    {
+        printf("Error: ums_create_worker_thread() => Schedule_Affinity => Error# = %d\n", errno);
+        pthread_exit(NULL);
+    }
+    
+    /*
+    ret = sched_getaffinity(getpid(), sizeof(cpu_set_t), &set);
+    printf("sched_getaffinity = ");
+    for (int i = 0; i < number_of_cpus; i++) {
+        printf("%d ", CPU_ISSET(i, &set));
+    }
+    */
+
+    ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_create_worker_thread() => UMS_DEVICE => Error# = %d\n", errno);
