@@ -70,4 +70,5 @@ typedef struct scheduler_params {
     unsigned long entry_point; 
     ums_clid_t clid;
     ums_sid_t sid;
+    int core_id;
 } scheduler_params_t;

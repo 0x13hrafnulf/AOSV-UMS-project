@@ -134,7 +134,6 @@ ums_clid_t ums_create_completion_list()
     
     comp_list->clid = (ums_clid_t)ret;
     comp_list->worker_count = 0;
-    comp_list->list_params = NULL;
     list_add_tail(&(comp_list->list), &completion_lists.list);
     completion_lists.count++;
 
@@ -376,7 +375,8 @@ list_params_t *ums_dequeue_completion_list_items()
         list->size = comp_list->worker_count;
         scheduler->list_params = list;
     }
-
+    printf("Scheduler => SID = %d, Scheduler_id = %d\n", scheduler->sched_params->sid, scheduler_id);
+    
     list->worker_count = 0;
     int ret = open_device();
     if(ret < 0)
@@ -409,7 +409,7 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     }
 
     int index = 0;
-    while(index < list->worker_count && list->workers[index] == -1)
+    while(index < list->worker_count && list->workers[index] > -1)
     {
         ++index;
     }
@@ -508,7 +508,7 @@ ums_scheduler_t *check_if_scheduler_exists(ums_sid_t sid)
         ums_scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &schedulers.list, list) 
         {
-            if(temp->sid == sid)
+            if(temp->sched_params->sid == sid)
             {
                 scheduler = temp;
                 break;

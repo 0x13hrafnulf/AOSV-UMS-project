@@ -36,7 +36,7 @@ void function1(void *args)
     int check = 5;
     for(int i = 0; i < 5; ++i)
     {
-        printf("--- UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);
+        getpid();
     }
     ums_thread_pause();
     printf("- UMS_EXAMPLE_Continue_%s\n", __FUNCTION__);
@@ -45,7 +45,7 @@ void function1(void *args)
     printf("-- Check = %d\n", check);
     for(int i = 0; i < 5; ++i)
     {
-        printf("--- UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);
+        getpid();
     }
     ums_thread_exit();
 }
@@ -57,7 +57,7 @@ void function2(void *args)
     printf("-- pthread_id = %d\n", pthread_self());
     for(int i = 0; i < 5; ++i)
     {
-        printf("--- UMS_EXAMPLE: %s => Loop: i = %d\n", __FUNCTION__, i);
+       getpid();
     }
     ums_thread_exit();
 }
@@ -66,7 +66,7 @@ int main()
 {
     ums_enter();
     ums_clid_t comp_list1 =  ums_create_completion_list();
-
+    
     int arg1 = 1;
     int arg2 = 2;
     ums_wid_t worker1 = ums_create_worker_thread(comp_list1, STACK_SIZE, function1, &arg1);
@@ -74,11 +74,7 @@ int main()
     ums_wid_t worker3 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker4 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker5 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker6 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker8 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker9 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker10 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker11 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+
     
     ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, loop1);
     ums_sid_t scheduler2 = ums_create_scheduler(comp_list1, loop1);
