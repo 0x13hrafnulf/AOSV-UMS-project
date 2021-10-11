@@ -33,7 +33,7 @@ int close_device();
 int cleanup();
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
 int check_if_worker_exists(ums_wid_t wid);
-ums_scheduler_t *check_if_scheduler_exists(ums_sid_t sid);
+ums_scheduler_t *check_if_scheduler_exists();
 
 typedef struct ums_completion_list {
     struct list_head list;

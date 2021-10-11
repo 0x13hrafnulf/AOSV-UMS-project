@@ -391,22 +391,6 @@ int dequeue_completion_list_items(list_params_t *params)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
     
-    int err = copy_from_user(&size, params, sizeof(unsigned int));
-    if(err != 0)
-    {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
-        return err;
-    }
-
-    kern_params = kmalloc(sizeof(list_params_t) + size * sizeof(ums_wid_t), GFP_KERNEL);
-    err = copy_from_user(kern_params, params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
-    if(err != 0)
-    {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
-        kfree(kern_params);
-        return err;
-    }
-
     scheduler = check_if_scheduler_exists(proc, current->pid);
     if(scheduler == NULL)
     {
@@ -416,6 +400,14 @@ int dequeue_completion_list_items(list_params_t *params)
 
     comp_list = scheduler->comp_list;
 
+    kern_params = kmalloc(sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t), GFP_KERNEL);
+    int err = copy_from_user(kern_params, params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
+    if(err != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
+        kfree(kern_params);
+        return err;
+    }
     
     kern_params->state = comp_list->finished_count == comp_list->worker_count ? FINISHED : IDLE;
 
@@ -429,13 +421,13 @@ int dequeue_completion_list_items(list_params_t *params)
         {
             kern_params->workers[count] = temp->wid;
             count++;
-            if (count > size) break;
+            if (count > comp_list->worker_count) break;
         }
     }
 
     kern_params->worker_count = count;
 
-    err = copy_to_user(params, kern_params, sizeof(list_params_t) + size * sizeof(ums_wid_t));
+    err = copy_to_user(params, kern_params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
     if(err != 0)
     {
         printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_to_user failed to copy %d bytes\n", err);

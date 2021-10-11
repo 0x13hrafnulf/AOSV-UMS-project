@@ -32,7 +32,7 @@ void function1(void *args)
 {
     printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
     printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %d\n", pthread_self());
+    printf("-- pthread_id = %ld\n", pthread_self());
     int check = 5;
     for(int i = 0; i < 5; ++i)
     {
@@ -41,7 +41,7 @@ void function1(void *args)
     ums_thread_pause();
     printf("- UMS_EXAMPLE_Continue_%s\n", __FUNCTION__);
     printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %d\n", pthread_self());
+    printf("-- pthread_id = %ld\n", pthread_self());
     printf("-- Check = %d\n", check);
     for(int i = 0; i < 5; ++i)
     {
@@ -54,7 +54,7 @@ void function2(void *args)
 {
     printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
     printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %d\n", pthread_self());
+    printf("-- pthread_id = %ld\n", pthread_self());
     for(int i = 0; i < 5; ++i)
     {
        getpid();
