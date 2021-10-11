@@ -32,6 +32,8 @@ int open_device();
 int close_device();
 int cleanup();
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
+int check_if_worker_exists(ums_wid_t wid);
+ums_scheduler_t *check_if_scheduler_exists(ums_sid_t sid);
 
 typedef struct ums_completion_list {
     struct list_head list;
@@ -42,7 +44,6 @@ typedef struct ums_completion_list_node {
     ums_clid_t clid;
     unsigned int worker_count;
     struct list_head list;
-    list_params_t *list_params;
 } ums_completion_list_node_t;
 
 typedef struct ums_worker_list {
@@ -65,6 +66,7 @@ typedef struct ums_scheduler {
     struct list_head list;
     pthread_t tid;
     scheduler_params_t *sched_params;
+    list_params_t *list_params;
 } ums_scheduler_t;
 
 #define init(type) (type*)malloc(sizeof(type))

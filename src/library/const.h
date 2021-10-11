@@ -9,7 +9,7 @@
 #define UMS_EXIT                            _IO(UMS_IOC_MAGIC, 2)
 #define UMS_CREATE_LIST                     _IO(UMS_IOC_MAGIC, 3)
 #define UMS_CREATE_WORKER                   _IOW(UMS_IOC_MAGIC, 4, unsigned long)
-#define UMS_ENTER_SCHEDULING_MODE           _IOW(UMS_IOC_MAGIC, 5, unsigned long)
+#define UMS_ENTER_SCHEDULING_MODE           _IOWR(UMS_IOC_MAGIC, 5, unsigned long)
 #define UMS_EXIT_SCHEDULING_MODE            _IO(UMS_IOC_MAGIC, 6)
 #define UMS_EXECUTE_THREAD                  _IOW(UMS_IOC_MAGIC, 7, unsigned long)
 #define UMS_THREAD_YIELD                    _IOW(UMS_IOC_MAGIC, 8, unsigned long)
