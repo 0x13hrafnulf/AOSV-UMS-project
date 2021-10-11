@@ -1,6 +1,6 @@
 #include "ums_lib.h"
 
-#define STACK_SIZE 4096 * 2
+#define STACK_SIZE 4096
 
 void loop1()
 {
@@ -74,6 +74,11 @@ int main()
     ums_wid_t worker3 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker4 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker5 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker6 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker8 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker9 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker10 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker11 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     
     ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, loop1);
     ums_sid_t scheduler2 = ums_create_scheduler(comp_list1, loop1);

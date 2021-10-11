@@ -373,6 +373,7 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
         return -UMS_ERROR_NO_AVAILABLE_WORKERS;
     }
 
+
     return list->workers[0];
 }
 
