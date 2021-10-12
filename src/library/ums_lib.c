@@ -384,12 +384,11 @@ list_params_t *ums_dequeue_completion_list_items()
     if(list->worker_count == 0 && list->state != FINISHED)
     {
         printf("IOCTL %ld\n", pthread_self());
-        printf("UMS_LIB_LIST: count %d, state %d\n", list->worker_count, list->state);
         goto dequeue;
     }
     else
     {
-        printf("IOCTL %ld\n", pthread_self());
+        printf("SKIPPING %ld\n", pthread_self());
         goto out;
     }
     
@@ -426,11 +425,8 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     }
 
     int index = -1;
-    while(++index < list->size && list->workers[index] == -1)
-    {
-        printf("UMS_LIB_LIST: Size %d, index %d, workers[index] %d\n", list->size, index, list->workers[index]);
-    }
-    printf("UMS_LIB_LIST: ");
+    while(++index < list->size && list->workers[index] == -1);
+
     for(int i = 0; i < list->size; ++i)
     {
         printf("%d ", list->workers[i]);
