@@ -226,7 +226,6 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     proc->scheduler_list->scheduler_count++;
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
-
     return scheduler_id;
 }
 

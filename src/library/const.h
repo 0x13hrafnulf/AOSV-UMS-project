@@ -48,6 +48,7 @@ typedef unsigned int ums_wid_t;
 typedef unsigned int ums_clid_t;
 
 typedef struct list_params {
+    unsigned int size;
     unsigned int worker_count;
     state_t state;
     ums_wid_t workers[];

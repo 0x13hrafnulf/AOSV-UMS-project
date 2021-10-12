@@ -73,7 +73,7 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
     printk(KERN_INFO UMS_MODULE_NAME_LOG ">-----------------------------------------------------------\n",  current->pid, current->tgid, cmd, ret);
     spin_unlock_irqrestore(&spinlock_ums, spinlock_flags_ums);
     //preempt_enable();
-    cond_resched();
+    //cond_resched();
 	return ret;
 }
 

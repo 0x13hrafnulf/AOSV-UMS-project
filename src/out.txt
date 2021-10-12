@@ -1,0 +1,158 @@
+UMS_LIB: ums_exit() invoked.
+UMS_SCHEDULER_CORE_ID = 0, CPU = 0
+- UMS_EXAMPLE_loop1
+IOCTL 139968713041664
+UMS_LIB_LIST: count 0, state 0
+UMS_LIB_LIST: 0 1 2 3 4 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 0
+UMS_LIB_LIST: count 9, wid 0, index 0
+UMS_SCHEDULER_CORE_ID = 1, CPU = 1
+- UMS_EXAMPLE_function1
+-- UMS_EXAMPLE: args = 1
+-- pthread_id = 139968713041664
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: -1 1 2 3 4 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 1
+UMS_LIB_LIST: count 8, wid 1, index 1
+- UMS_EXAMPLE_loop1
+IOCTL 139968704648960
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: -1 -1 2 3 4 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 2
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+UMS_LIB_LIST: count 7, wid 2, index 2
+-- pthread_id = 139968713041664
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968704648960
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 3 4 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 3
+UMS_LIB_LIST: count 6, wid 3, index 3
+IOCTL 139968704648960
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 4 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 4
+UMS_LIB_LIST: count 5, wid 4, index 4
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968713041664
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968704648960
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: Size 10, index 4, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 -1 5 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 5
+UMS_LIB_LIST: count 4, wid 5, index 5
+IOCTL 139968704648960
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: Size 10, index 4, workers[index] -1
+UMS_LIB_LIST: Size 10, index 5, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 -1 -1 6 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 6
+UMS_LIB_LIST: count 3, wid 6, index 6
+- UMS_EXAMPLE_function1
+-- UMS_EXAMPLE: args = 1
+-- pthread_id = 139968713041664
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968704648960
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: Size 10, index 4, workers[index] -1
+UMS_LIB_LIST: Size 10, index 5, workers[index] -1
+UMS_LIB_LIST: Size 10, index 6, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 -1 -1 -1 7 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 7
+UMS_LIB_LIST: count 2, wid 7, index 7
+IOCTL 139968704648960
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: Size 10, index 4, workers[index] -1
+UMS_LIB_LIST: Size 10, index 5, workers[index] -1
+UMS_LIB_LIST: Size 10, index 6, workers[index] -1
+UMS_LIB_LIST: Size 10, index 7, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 -1 -1 -1 -1 8 9 
+-- UMS_EXAMPLE_LOOP: Worker = 8
+UMS_LIB_LIST: count 1, wid 8, index 8
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968713041664
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968704648960
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: Size 10, index 1, workers[index] -1
+UMS_LIB_LIST: Size 10, index 2, workers[index] -1
+UMS_LIB_LIST: Size 10, index 3, workers[index] -1
+UMS_LIB_LIST: Size 10, index 4, workers[index] -1
+UMS_LIB_LIST: Size 10, index 5, workers[index] -1
+UMS_LIB_LIST: Size 10, index 6, workers[index] -1
+UMS_LIB_LIST: Size 10, index 7, workers[index] -1
+UMS_LIB_LIST: Size 10, index 8, workers[index] -1
+UMS_LIB_LIST: -1 -1 -1 -1 -1 -1 -1 -1 -1 9 
+-- UMS_EXAMPLE_LOOP: Worker = 9
+UMS_LIB_LIST: count 0, wid 9, index 9
+- UMS_EXAMPLE_function2
+-- UMS_EXAMPLE: args = 2
+-- pthread_id = 139968713041664
+IOCTL 139968713041664
+UMS_LIB_LIST: count 0, state 0
+UMS_LIB_LIST: 0 5 -1 -1 -1 -1 -1 -1 -1 -1 
+-- UMS_EXAMPLE_LOOP: Worker = 0
+UMS_LIB_LIST: count 1, wid 0, index 0
+- UMS_EXAMPLE_Continue_function1
+-- UMS_EXAMPLE: args = 1
+-- pthread_id = 139968713041664
+-- Check = 5
+IOCTL 139968713041664
+UMS_LIB_LIST: Size 10, index 0, workers[index] -1
+UMS_LIB_LIST: -1 5 -1 -1 -1 -1 -1 -1 -1 -1 
+-- UMS_EXAMPLE_LOOP: Worker = 5
+UMS_LIB_LIST: count 0, wid 5, index 1
+- UMS_EXAMPLE_Continue_function1
+-- UMS_EXAMPLE: args = 1
+-- pthread_id = 139968713041664
+-- Check = 5
+IOCTL 139968713041664
+UMS_LIB_LIST: count 0, state 0
+Error: get_next_worker_thread() => Completion list is finished!
+IOCTL 139968704648960
+Error: get_next_worker_thread() => Completion list is finished!
+UMS_LIB: ums_exit() => ioctl_ret = 0.
+UMS_LIB: Completion list:0 was deleted.
+UMS_LIB: Worker thread:0  was deleted.
+UMS_LIB: Worker thread:1  was deleted.
+UMS_LIB: Worker thread:2  was deleted.
+UMS_LIB: Worker thread:3  was deleted.
+UMS_LIB: Worker thread:4  was deleted.
+UMS_LIB: Worker thread:5  was deleted.
+UMS_LIB: Worker thread:6  was deleted.
+UMS_LIB: Worker thread:7  was deleted.
+UMS_LIB: Worker thread:8  was deleted.
+UMS_LIB: Worker thread:9  was deleted.
+UMS_LIB: Scheduler:0  was deleted.
+UMS_LIB: Scheduler:1  was deleted.

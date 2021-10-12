@@ -44,6 +44,7 @@ typedef struct ums_completion_list_node {
     ums_clid_t clid;
     unsigned int worker_count;
     struct list_head list;
+    list_params_t *list_params;
 } ums_completion_list_node_t;
 
 typedef struct ums_worker_list {
@@ -66,7 +67,6 @@ typedef struct ums_scheduler {
     struct list_head list;
     pthread_t tid;
     scheduler_params_t *sched_params;
-    list_params_t *list_params;
 } ums_scheduler_t;
 
 #define init(type) (type*)malloc(sizeof(type))
