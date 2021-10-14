@@ -134,6 +134,9 @@ ums_clid_t ums_create_completion_list()
     comp_list->clid = (ums_clid_t)ret;
     comp_list->worker_count = 0;
     comp_list->list_params = NULL;
+    comp_list->usage = 0;
+    pthread_mutex_init(&comp_list->mutex, NULL);
+    pthread_cond_init(&&comp_list->update, NULL);
     list_add_tail(&(comp_list->list), &completion_lists.list);
     completion_lists.count++;
 
@@ -318,6 +321,7 @@ int ums_execute_thread(ums_wid_t wid)
     {
         ++index;
     }
+    comp_list->usage++;
     list->workers[index] = -1;
     list->worker_count--;
     printf("UMS_LIB_LIST: count %d, wid %d, index %d\n", list->worker_count, wid, index);
@@ -341,6 +345,16 @@ int ums_execute_thread(ums_wid_t wid)
 
 int ums_thread_yield(worker_status_t status) 
 {
+    ums_completion_list_node_t *comp_list;
+
+    comp_list = check_if_completion_list_exists(completion_list_id);
+    if(comp_list == NULL)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)completion_list_id);
+        return -UMS_ERROR;
+    }
+    comp_list->usage--;
+
     int ret = open_device();
     if(ret < 0)
     {

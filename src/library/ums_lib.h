@@ -43,6 +43,9 @@ typedef struct ums_completion_list {
 typedef struct ums_completion_list_node {
     ums_clid_t clid;
     unsigned int worker_count;
+    unsigned int usage;
+    pthread_cond_t update;
+    pthread_mutex_t mutex;
     struct list_head list;
     list_params_t *list_params;
 } ums_completion_list_node_t;

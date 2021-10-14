@@ -2,7 +2,6 @@
 
 process_list_t proc_list = {
     .list = LIST_HEAD_INIT(proc_list.list),
-    .process_count = 0
 };
 
 int enter_ums(void)
