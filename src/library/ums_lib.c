@@ -136,7 +136,7 @@ ums_clid_t ums_create_completion_list()
     comp_list->list_params = NULL;
     comp_list->usage = 0;
     pthread_mutex_init(&comp_list->mutex, NULL);
-    pthread_cond_init(&&comp_list->update, NULL);
+    pthread_cond_init(&comp_list->update, NULL);
     list_add_tail(&(comp_list->list), &completion_lists.list);
     completion_lists.count++;
 
@@ -396,10 +396,11 @@ list_params_t *ums_dequeue_completion_list_items()
 
     int ret;
     list = comp_list->list_params;
-    pthread_mutex_lock(&comp_list->mutex);
+    
 
     if(list->worker_count == 0 && list->state != FINISHED)
     {
+        pthread_mutex_lock(&comp_list->mutex);
         if(comp_list->usage > 0)
         {
             printf("Waiting for signal %ld\n", pthread_self());
@@ -446,7 +447,7 @@ list_params_t *ums_dequeue_completion_list_items()
     } 
 
     pthread_mutex_unlock(&comp_list->mutex);
-    
+
     out:
     return list;
 }
