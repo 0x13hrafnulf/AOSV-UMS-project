@@ -394,11 +394,28 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }
 
+    int ret;
     list = comp_list->list_params;
+    pthread_mutex_lock(&comp_list->mutex);
+
     if(list->worker_count == 0 && list->state != FINISHED)
     {
-        printf("IOCTL %ld\n", pthread_self());
-        goto dequeue;
+        if(comp_list->usage > 0)
+        {
+            printf("Waiting for signal %ld\n", pthread_self());
+            ret = pthread_cond_wait(&comp_list->update, &comp_list->mutex);
+            if(ret < 0)
+            {
+                printf("Error: ums_dequeue_completion_list_items() => pthread_cond_wait() => Error# = %d\n", errno);
+                return -UMS_ERROR;
+            }   
+            goto out;
+        }
+        else
+        {
+            printf("Updating the list %ld\n", pthread_self());
+            goto dequeue;
+        }
     }
     else
     {
@@ -407,7 +424,7 @@ list_params_t *ums_dequeue_completion_list_items()
     }
     
     dequeue: ;
-    int ret = open_device();
+    ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_dequeue_completion_list_items() => UMS_DEVICE => Error# = %d\n", errno);
@@ -421,6 +438,15 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }   
 
+    ret = pthread_cond_broadcast(&comp_list->update);
+    if(ret < 0)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => pthread_cond_broadcast() => Error# = %d\n", errno);
+        return -UMS_ERROR;
+    } 
+
+    pthread_mutex_unlock(&comp_list->mutex);
+    
     out:
     return list;
 }
