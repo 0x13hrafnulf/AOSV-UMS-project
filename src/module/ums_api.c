@@ -1,22 +1,22 @@
 #include "ums_api.h"
 
-process_list_t proc_list = {
-    .list = LIST_HEAD_INIT(proc_list.list),
+process_list_t process_list = {
+    .list = LIST_HEAD_INIT(process_list.list),
 };
 
 int enter_ums(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_ums()\n");
     
-    process_t *proc;
+    process_t *process;
 
-    proc = check_if_process_exists(current->pid);
-    if(proc != NULL)
+    process = check_if_process_exists(current->pid);
+    if(process != NULL)
     {
         return -UMS_ERROR_PROCESS_ALREADY_EXISTS;
     }
 
-    proc = create_process_node(current->pid);
+    process = create_process_node(current->pid);
 
     return UMS_SUCCESS;
 }
@@ -25,69 +25,69 @@ int exit_ums(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_ums()\n");
 
-    process_t *proc;
+    process_t *process;
 
-    proc = check_if_process_exists(current->pid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->pid);
+    if(process == NULL)
     {
         return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
-    delete_process(proc);
+    delete_process(process);
     
     return UMS_SUCCESS;
 }
 
 process_t *create_process_node(pid_t pid)
 {
-    process_t *proc;
+    process_t *process;
 
-    proc = kmalloc(sizeof(process_t), GFP_KERNEL);
-    list_add_tail(&proc->list, &proc_list.list);
+    process = kmalloc(sizeof(process_t), GFP_KERNEL);
+    list_add_tail(&process->list, &process_list.list);
 
-    proc_list.process_count++;
-    proc->pid = current->pid;
+    process_list.process_count++;
+    process->pid = current->pid;
 
     completion_list_t *comp_lists;
     comp_lists = kmalloc(sizeof(completion_list_t), GFP_KERNEL);
-    proc->completion_lists = comp_lists;
+    process->completion_lists = comp_lists;
     INIT_LIST_HEAD(&comp_lists->list);
     comp_lists->list_count = 0;
 
     worker_list_t *work_list;
     work_list = kmalloc(sizeof(worker_list_t), GFP_KERNEL);
-    proc->worker_list = work_list;
+    process->worker_list = work_list;
     INIT_LIST_HEAD(&work_list->list);
     work_list->worker_count = 0;
 
     scheduler_list_t *sched_list;
     sched_list = kmalloc(sizeof(sched_list), GFP_KERNEL);
-    proc->scheduler_list = sched_list;
+    process->scheduler_list = sched_list;
     INIT_LIST_HEAD(&sched_list->list);
     sched_list->scheduler_count = 0;
 
-    return proc;
+    return process;
 }
 
 ums_clid_t create_completion_list()
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_completion_list()\n");
 
-    process_t *proc;
+    process_t *process;
     completion_list_node_t *comp_list;
     ums_clid_t list_id;
 
-    proc = check_if_process_exists(current->pid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->pid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
     
     comp_list = kmalloc(sizeof(completion_list_node_t), GFP_KERNEL);
-    list_add_tail(&(comp_list->list), &proc->completion_lists->list);
+    list_add_tail(&(comp_list->list), &process->completion_lists->list);
 
-    comp_list->clid = proc->completion_lists->list_count;
-    proc->completion_lists->list_count++;
+    comp_list->clid = process->completion_lists->list_count;
+    process->completion_lists->list_count++;
     comp_list->worker_count = 0;
     comp_list->finished_count = 0;
     
@@ -111,14 +111,14 @@ ums_wid_t create_worker_thread(worker_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_worker_thread()\n");
 
-    process_t *proc;
+    process_t *process;
     worker_t *worker;
     completion_list_node_t *comp_list;
     ums_wid_t worker_id;
     worker_params_t kern_params;
 
-    proc = check_if_process_exists(current->pid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->pid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
@@ -130,16 +130,16 @@ ums_wid_t create_worker_thread(worker_params_t *params)
         return err;
     }
 
-    comp_list = check_if_completion_list_exists(proc, kern_params.clid);
+    comp_list = check_if_completion_list_exists(process, kern_params.clid);
     if(comp_list == NULL)
     {
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
     worker = kmalloc(sizeof(worker_t), GFP_KERNEL);
-    list_add_tail(&(worker->global_list), &proc->worker_list->list);
+    list_add_tail(&(worker->global_list), &process->worker_list->list);
 
-    worker->wid = proc->worker_list->worker_count;
+    worker->wid = process->worker_list->worker_count;
     worker->pid = -1;
     worker->tid = current->tgid;
     worker->sid = -1;
@@ -159,7 +159,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     list_add_tail(&(worker->local_list), &comp_list->idle_list->list);
     comp_list->idle_list->worker_count++;
     comp_list->worker_count++;
-    proc->worker_list->worker_count++;
+    process->worker_list->worker_count++;
 
     worker_id = worker->wid;
     return worker_id;
@@ -169,14 +169,14 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_scheduling_mode()\n");
     
-    process_t *proc;
+    process_t *process;
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
     ums_sid_t scheduler_id;
     scheduler_params_t kern_params;
 
-    proc = check_if_process_exists(current->tgid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
@@ -188,16 +188,16 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
         return err;
     }
 
-    comp_list = check_if_completion_list_exists(proc, kern_params.clid);
+    comp_list = check_if_completion_list_exists(process, kern_params.clid);
     if(comp_list == NULL)
     {
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
     scheduler = kmalloc(sizeof(scheduler_t), GFP_KERNEL);
-    list_add_tail(&(scheduler->list), &proc->scheduler_list->list);
+    list_add_tail(&(scheduler->list), &process->scheduler_list->list);
 
-    scheduler->sid = proc->scheduler_list->scheduler_count;
+    scheduler->sid = process->scheduler_list->scheduler_count;
     scheduler->pid = current->pid;
     scheduler->tid = current->tgid;
     scheduler->wid = -1;
@@ -222,7 +222,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->stack_ptr = scheduler->regs.sp;
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
-    proc->scheduler_list->scheduler_count++;
+    process->scheduler_list->scheduler_count++;
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
     return scheduler_id;
@@ -232,16 +232,16 @@ int exit_scheduling_mode(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_scheduling_mode()\n");
     
-    process_t *proc;
+    process_t *process;
     scheduler_t *scheduler;
     
-    proc = check_if_process_exists(current->tgid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(proc, current->pid);
+    scheduler = check_if_scheduler_exists(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -264,18 +264,18 @@ int execute_thread(ums_wid_t worker_id)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of execute_thread()\n");
 
-    process_t *proc;
+    process_t *process;
     worker_t *worker;
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
 
-    proc = check_if_process_exists(current->tgid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(proc, current->pid);
+    scheduler = check_if_scheduler_exists(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -321,7 +321,7 @@ int thread_yield(worker_status_t status)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of thread_yield()\n");
 
-    process_t *proc;
+    process_t *process;
     worker_t *worker;
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
@@ -331,13 +331,13 @@ int thread_yield(worker_status_t status)
         return -UMS_ERROR_WRONG_INPUT;
     }
 
-    proc = check_if_process_exists(current->tgid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(proc, current->pid);
+    scheduler = check_if_scheduler_exists(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -376,20 +376,20 @@ int dequeue_completion_list_items(list_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of dequeue_completion_list_items()\n");
 
-    process_t *proc;
+    process_t *process;
     worker_t *worker;
     scheduler_t *scheduler;
     completion_list_node_t *comp_list;
     list_params_t *kern_params;
     unsigned int size;
 
-    proc = check_if_process_exists(current->tgid);
-    if(proc == NULL)
+    process = check_if_process_exists(current->tgid);
+    if(process == NULL)
     {
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
     
-    scheduler = check_if_scheduler_exists(proc, current->pid);
+    scheduler = check_if_scheduler_exists(process, current->pid);
     if(scheduler == NULL)
     {
         kfree(kern_params);
@@ -439,34 +439,34 @@ int dequeue_completion_list_items(list_params_t *params)
 
 process_t *check_if_process_exists(pid_t pid)
 {
-    process_t *proc = NULL;
+    process_t *process = NULL;
 
-    if(!list_empty(&proc_list.list))
+    if(!list_empty(&process_list.list))
     {
         process_t *temp = NULL;
         process_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc_list.list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process_list.list, list) 
         {
             if(temp->pid == pid)
             {
-                proc = temp;
+                process = temp;
                 break;
             }
         }
     }
 
-    return proc;
+    return process;
 }
 
-completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid)
+completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_clid_t clid)
 {
     completion_list_node_t *comp_list;
 
-    if(!list_empty(&proc->completion_lists->list))
+    if(!list_empty(&process->completion_lists->list))
     {
         completion_list_node_t *temp = NULL;
         completion_list_node_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc->completion_lists->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process->completion_lists->list, list) 
         {
             if(temp->clid == clid)
             {
@@ -479,15 +479,15 @@ completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_cli
     return comp_list;
 }
 
-scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid)
+scheduler_t *check_if_scheduler_exists(process_t *process, pid_t pid)
 {
     scheduler_t *scheduler;
 
-    if(!list_empty(&proc->scheduler_list->list))
+    if(!list_empty(&process->scheduler_list->list))
     {
         scheduler_t *temp = NULL;
         scheduler_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
             if(temp->pid == pid)
             {
@@ -521,15 +521,15 @@ worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
     return worker;
 }
 
-state_t check_schedulers_state(process_t *proc)
+state_t check_schedulers_state(process_t *process)
 {
     state_t progress = FINISHED;
 
-    if(!list_empty(&proc->scheduler_list->list))
+    if(!list_empty(&process->scheduler_list->list))
     {
         scheduler_t *temp = NULL;
         scheduler_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
             
             if(temp->state == RUNNING || temp->state == IDLE) 
@@ -543,10 +543,10 @@ state_t check_schedulers_state(process_t *proc)
     return progress;
 }
 
-int delete_process(process_t *proc)
+int delete_process(process_t *process)
 {
     int ret;
-    state_t progress = check_schedulers_state(proc);
+    state_t progress = check_schedulers_state(process);
 
     if(progress != FINISHED)
     {
@@ -555,39 +555,39 @@ int delete_process(process_t *proc)
         goto out;
     }
 
-    delete_completion_lists_and_worker_threads(proc);
-    delete_schedulers(proc);
-    list_del(&proc->list);
-    proc_list.process_count--;
-    kfree(proc);
+    delete_completion_lists_and_worker_threads(process);
+    delete_schedulers(process);
+    list_del(&process->list);
+    process_list.process_count--;
+    kfree(process);
     ret = UMS_SUCCESS;
 
  out:
     return ret;
 }
 
-int delete_process_safe(process_t *proc)
+int delete_process_safe(process_t *process)
 {
     int ret;
 
-    delete_completion_lists_and_worker_threads(proc);
-    delete_schedulers(proc);
-    list_del(&proc->list);
-    proc_list.process_count--;
-    kfree(proc);
+    delete_completion_lists_and_worker_threads(process);
+    delete_schedulers(process);
+    list_del(&process->list);
+    process_list.process_count--;
+    kfree(process);
     ret = UMS_SUCCESS;
 
  out:
     return ret;
 }
 
-int delete_completion_lists_and_worker_threads(process_t *proc)
+int delete_completion_lists_and_worker_threads(process_t *process)
 {
-    if(!list_empty(&proc->completion_lists->list))
+    if(!list_empty(&process->completion_lists->list))
     {
         completion_list_node_t *temp = NULL;
         completion_list_node_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc->completion_lists->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process->completion_lists->list, list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Completion list:%d was deleted.\n", temp->clid);
 
@@ -599,10 +599,10 @@ int delete_completion_lists_and_worker_threads(process_t *proc)
             kfree(temp);
         }
     }
-    list_del(&proc->completion_lists->list);
-    kfree(proc->completion_lists);
-    delete_workers_from_process_list(proc->worker_list);
-    kfree(proc->worker_list);
+    list_del(&process->completion_lists->list);
+    kfree(process->completion_lists);
+    delete_workers_from_process_list(process->worker_list);
+    kfree(process->worker_list);
     return UMS_SUCCESS;
 }
 
@@ -642,14 +642,14 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
     return UMS_SUCCESS;
 }
 
-int delete_schedulers(process_t *proc)
+int delete_schedulers(process_t *process)
 {
 
-    if(!list_empty(&proc->scheduler_list->list))
+    if(!list_empty(&process->scheduler_list->list))
     {
         scheduler_t *temp = NULL;
         scheduler_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc->scheduler_list->list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Scheduler:%d was deleted.\n", temp->sid);
 
@@ -657,19 +657,19 @@ int delete_schedulers(process_t *proc)
             kfree(temp);
         }
     }
-    list_del(&proc->scheduler_list->list);
-    kfree(proc->scheduler_list);
+    list_del(&process->scheduler_list->list);
+    kfree(process->scheduler_list);
     return UMS_SUCCESS;
 }
 
 int cleanup()
 {
 
-    if(!list_empty(&proc_list.list))
+    if(!list_empty(&process_list.list))
     {
         process_t *temp = NULL;
         process_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &proc_list.list, list) 
+        list_for_each_entry_safe(temp, safe_temp, &process_list.list, list) 
         {
             delete_process_safe(temp);
         }

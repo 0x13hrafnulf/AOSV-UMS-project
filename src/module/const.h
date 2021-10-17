@@ -2,10 +2,12 @@
 
 #include <linux/ioctl.h>
 
+#define UMS_NAME            "ums"
 #define UMS_DEVICE          "/dev/ums"
 #define UMS_IOC_MAGIC       'R'
 #define UMS_IOC_DEVICE_NAME "ums_sched"
 #define UMS_MODULE_NAME_LOG "ums_sched: "
+#define UMS_PROC_NAME_LOG   "/proc/ums: "
 #define UMS_MINOR MISC_DYNAMIC_MINOR
 
 #define UMS_ENTER                           _IO(UMS_IOC_MAGIC, 1)

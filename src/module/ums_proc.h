@@ -1,10 +1,15 @@
 #pragma once
 
-<linux/proc_fs.h>
+#include <linux/proc_fs.h>
 
-union proc_op {
-    
-};
+#include "ums_api.h"
+
+int init_proc(void);
+int delete_proc(void);
+
+
+extern process_list_t process_list;
+
 
 struct pid_entry {
     const char *name;

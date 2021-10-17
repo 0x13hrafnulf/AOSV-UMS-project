@@ -2,6 +2,7 @@
 
 #include <linux/ioctl.h>
 
+#define UMS_NAME            "ums"
 #define UMS_DEVICE          "/dev/ums"
 #define UMS_IOC_MAGIC       'R'
 

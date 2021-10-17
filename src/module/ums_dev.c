@@ -92,6 +92,13 @@ static int __init init_dev(void)
 
     printk(KERN_INFO UMS_MODULE_NAME_LOG "- Device " UMS_DEVICE " has been successfully registered.\n");
 
+    ret = init_proc();
+    if (ret < 0)
+    {
+        printk(KERN_ERR UMS_MODULE_NAME_LOG "- Registration of proc filesystem of /proc/" UMS_NAME " has failed.\n");
+        return -UMS_ERROR;
+    }
+
     return UMS_SUCCESS;
 }
 
