@@ -104,6 +104,7 @@ static int __init init_dev(void)
 
 static void __exit exit_dev(void)
 {
+    delete_proc();
     misc_deregister(&dev_ums);
     cleanup();
     printk(KERN_INFO UMS_MODULE_NAME_LOG "> Shut down.\n");

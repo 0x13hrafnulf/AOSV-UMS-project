@@ -1,6 +1,6 @@
 obj-m := ums.o
 
-ums-y :=  ums_dev.o ums_api.o
+ums-y :=  ums_dev.o ums_api.o ums_proc.o
 
 CURRENT_PATH = $(shell pwd)
 LINUX_KERNEL = $(shell uname -r)
