@@ -9,25 +9,43 @@ int delete_proc(void);
 
 extern process_list_t process_list;
 
-union proc_op {
-	int (*proc_get_link)(struct dentry *, struct path *);
-	int (*proc_show)(struct seq_file *m, struct pid_namespace *ns, struct pid *pid, struct task_struct *task);
-};
+typedef struct process_proc_entry_list {
+    struct list_head list;
+    unsigned int process_count;
+} process_proc_entry_list_t;
 
-struct pid_entry {
-    const char *name;
-    unsigned int len;
-    umode_t mode;
-    const struct inode_operations *iop;
-    const struct file_operations *fop;
-    union proc_op op;
-};
+typedef struct process_proc_entry {
+    pid_t pid;
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+	struct proc_dir_entry *child;
+    struct list_head list;
+	scheduler_proc_entry_list_t *scheduler_list;
+} process_proc_entry_t;
 
-#define NOD(NAME, MODE, IOP, FOP, OP) {   \
-	.name = (NAME),					      \
-	.len  = sizeof(NAME) - 1,			  \
-	.mode = MODE,					      \
-	.iop  = IOP,					      \
-	.fop  = FOP,					      \
-	.op   = OP,					          \
-}
+typedef struct scheduler_proc_entry_list {
+    struct list_head list;
+    unsigned int scheduler_count;
+} scheduler_proc_entry_list_t;
+
+typedef struct scheduler_proc_entry {
+    ums_sid_t sid;
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+	struct proc_dir_entry *child;
+	struct proc_dir_entry *info;
+    struct list_head list;
+	worker_proc_entry_list_t *worker_list;
+} scheduler_proc_entry_t;
+
+typedef struct worker_proc_entry_list {
+    struct list_head list;
+    unsigned int worker_count;
+} worker_proc_entry_list_t;
+
+typedef struct worker_proc_entry {
+    ums_wid_t wid;
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+    struct list_head list;
+} worker_proc_entry_t;
