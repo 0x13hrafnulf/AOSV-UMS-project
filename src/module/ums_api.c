@@ -299,6 +299,13 @@ int execute_thread(ums_wid_t worker_id)
 
     }
 
+
+    scheduler->switch_count++;
+    worker->switch_count++;
+
+    ktime_get_real_ts64(&scheduler->time_of_the_last_switch);
+    ktime_get_real_ts64(&worker->time_of_the_last_switch);
+
     worker->state = RUNNING;
     worker->sid = scheduler->sid;
     worker->pid = current->pid;
@@ -313,6 +320,8 @@ int execute_thread(ums_wid_t worker_id)
 
     memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
     copy_kernel_to_fxregs(&worker->fpu_regs.state.fxsave);
+
+    scheduler->time_needed_for_the_last_switch += get_exec_time(&scheduler->time_of_the_last_switch);
 
     return UMS_SUCCESS;
 }
@@ -350,9 +359,9 @@ int thread_yield(worker_status_t status)
         return -UMS_ERROR_WORKER_NOT_FOUND;
     }
 
+    worker->total_exec_time += get_exec_time(&worker->time_of_the_last_switch);
+
     worker->state = (status == PAUSE) ? IDLE : FINISHED;
-    worker->sid = -1;
-    worker->pid = -1;
     scheduler->wid = -1;
     comp_list->finished_count = (status == PAUSE) ? comp_list->finished_count : comp_list->finished_count + 1;
 
@@ -676,4 +685,17 @@ int cleanup()
     }
 
     return UMS_SUCCESS;
+}
+
+unsigned long get_exec_time(struct timespec64 *prev_time)
+{
+    struct timespec64 current_time;
+    unsigned long cur, prev;
+
+    ktime_get_real_ts64(&current_time);
+
+    cur = current_time.tv_sec * 1000 + current_time.tv_nsec / 1000000;
+    prev = prev_time->tv_sec * 1000 + prev_time->tv_nsec / 1000000;
+
+    return cur - prev;
 }

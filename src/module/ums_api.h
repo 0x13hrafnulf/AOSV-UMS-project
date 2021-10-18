@@ -46,6 +46,7 @@ completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_cli
 scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid);
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid);
 state_t check_if_schedulers_state(process_t *proc);
+unsigned long get_exec_time(struct timespec64 *prev_time);
 
 int cleanup(void);
 
@@ -119,4 +120,5 @@ typedef struct scheduler {
     struct list_head list;
     unsigned int switch_count;
     unsigned long time_needed_for_the_last_switch;
+    struct timespec64 time_of_the_last_switch;
 } scheduler_t;
