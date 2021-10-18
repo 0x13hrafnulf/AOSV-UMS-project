@@ -3,7 +3,9 @@
 
 
 static struct proc_dir_entry *proc_ums;
-
+process_proc_entry_list_t process_proc_entry_list = {
+    .list = LIST_HEAD_INIT(process_proc_entry_list.list),
+};
 
 /*
 static struct proc_ops proc_fops = {

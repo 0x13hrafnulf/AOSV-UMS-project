@@ -6,6 +6,8 @@
 int init_proc(void);
 int delete_proc(void);
 
+int create_process_proc_entry(pid_t pid);
+int delete_process_proc_entry(pid_t pid);
 
 extern process_list_t process_list;
 
