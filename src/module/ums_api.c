@@ -724,38 +724,40 @@ int delete_proc(void)
 
 int create_process_proc_entry(process_t *process)
 {
-    /*
     process_proc_entry_t *process_pe;
 	char buf[UMS_BUFFER_LEN];
 
     process_pe = kmalloc(sizeof(process_proc_entry_t), GFP_KERNEL);
-    list_add_tail(&process_pe->list, &process_proc_entry_list.list);
-
-    process_proc_entry_list.process_count++;
-    process_pe->pid = pid;
-
-    scheduler_proc_entry_list_t *sched_pe_list;
-    sched_pe_list = kmalloc(sizeof(scheduler_proc_entry_list_t), GFP_KERNEL);
-    process->scheduler_list = sched_pe_list;
-    INIT_LIST_HEAD(&sched_pe_list->list);
-    sched_pe_list->scheduler_count = 0;
-
-    int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", pid);
+    
+    int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", process->pid);
 	if(ret != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => snprintf() failed\n", ret);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
         return ret;
     }
-
-	process_pe = proc_mkdir(buf, proc_ums);
-	if (!process_pe) {
+    process_pe->parent = proc_ums;
+	process_pe->pde = proc_mkdir(buf, proc_ums);
+	if (!process_pe->pde) {
 		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for %d\n", pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
-    */
+
+    process_pe->child = proc_mkdir("schedulers", process_pe->pde);
+    if (!process_pe->child) {
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for %d\n", pid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+	}
+
+    process->proc_entry = process_pe;
+    
     return UMS_SUCCESS;
 }
 int delete_process_proc_entry(process_t *process)
-{
+{  
+
+    proc_remove(process->proc_entry->child);
+    proc_remove(process->proc_entry->pde);
+    kfree(process->proc_entry);
+    
     return UMS_SUCCESS;
 }
