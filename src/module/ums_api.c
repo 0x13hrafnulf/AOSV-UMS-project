@@ -1,5 +1,6 @@
 #include "ums_api.h"
 
+static struct proc_dir_entry *proc_ums;
 process_list_t process_list = {
     .list = LIST_HEAD_INIT(process_list.list),
 };
@@ -123,11 +124,11 @@ ums_wid_t create_worker_thread(worker_params_t *params)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    int err = copy_from_user(&kern_params, params, sizeof(worker_params_t));
-    if(err != 0)
+    int ret = copy_from_user(&kern_params, params, sizeof(worker_params_t));
+    if(ret != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG "--- Error: create_worker_thread() => copy_from_user failed to copy %d bytes\n", err);
-        return err;
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG "--- Error: create_worker_thread() => copy_from_user failed to copy %d bytes\n", ret);
+        return ret;
     }
 
     comp_list = check_if_completion_list_exists(process, kern_params.clid);
@@ -181,11 +182,11 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    int err = copy_from_user(&kern_params, params, sizeof(scheduler_params_t));
-    if(err != 0)
+    int ret = copy_from_user(&kern_params, params, sizeof(scheduler_params_t));
+    if(ret != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", err);
-        return err;
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_from_user failed to copy %d bytes\n", ret);
+        return ret;
     }
 
     comp_list = check_if_completion_list_exists(process, kern_params.clid);
@@ -207,11 +208,11 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler_id = scheduler->sid;
 
     kern_params.sid = scheduler_id;
-    err = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
-    if(err != 0)
+    ret = copy_to_user(params, &kern_params, sizeof(scheduler_params_t));
+    if(ret != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_to_user failed to copy %d bytes\n", err);
-        return err;
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): copy_to_user failed to copy %d bytes\n", ret);
+        return ret;
     }
 
     memcpy(&scheduler->regs, task_pt_regs(current), sizeof(struct pt_regs));
@@ -408,12 +409,12 @@ int dequeue_completion_list_items(list_params_t *params)
     comp_list = scheduler->comp_list;
 
     kern_params = kmalloc(sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t), GFP_KERNEL);
-    int err = copy_from_user(kern_params, params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
-    if(err != 0)
+    int ret = copy_from_user(kern_params, params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
+    if(ret != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", err);
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_from_user failed to copy %d bytes\n", ret);
         kfree(kern_params);
-        return err;
+        return ret;
     }
     
     kern_params->state = comp_list->finished_count == comp_list->worker_count ? FINISHED : IDLE;
@@ -434,12 +435,12 @@ int dequeue_completion_list_items(list_params_t *params)
 
     kern_params->worker_count = count;
 
-    err = copy_to_user(params, kern_params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
-    if(err != 0)
+    ret = copy_to_user(params, kern_params, sizeof(list_params_t) + comp_list->worker_count * sizeof(ums_wid_t));
+    if(ret != 0)
     {
-        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_to_user failed to copy %d bytes\n", err);
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: dequeue_completion_list_items(): copy_to_user failed to copy %d bytes\n", ret);
         kfree(kern_params);
-        return err;
+        return ret;
     }
 
     kfree(kern_params);
@@ -698,4 +699,63 @@ unsigned long get_exec_time(struct timespec64 *prev_time)
     prev = prev_time->tv_sec * 1000 + prev_time->tv_nsec / 1000000;
 
     return cur - prev;
+}
+
+int init_proc(void)
+{
+    printk(KERN_INFO UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "> Initialization.\n");
+
+    proc_ums = proc_mkdir(UMS_NAME, NULL);
+    if(!proc_ums)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for " UMS_NAME "\n");
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+    }
+
+    return UMS_SUCCESS;
+}
+
+int delete_proc(void)
+{
+    printk(KERN_INFO UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "> Deleted.\n");
+    proc_remove(proc_ums);
+    return UMS_SUCCESS;
+}
+
+int create_process_proc_entry(process_t *process)
+{
+    /*
+    process_proc_entry_t *process_pe;
+	char buf[UMS_BUFFER_LEN];
+
+    process_pe = kmalloc(sizeof(process_proc_entry_t), GFP_KERNEL);
+    list_add_tail(&process_pe->list, &process_proc_entry_list.list);
+
+    process_proc_entry_list.process_count++;
+    process_pe->pid = pid;
+
+    scheduler_proc_entry_list_t *sched_pe_list;
+    sched_pe_list = kmalloc(sizeof(scheduler_proc_entry_list_t), GFP_KERNEL);
+    process->scheduler_list = sched_pe_list;
+    INIT_LIST_HEAD(&sched_pe_list->list);
+    sched_pe_list->scheduler_count = 0;
+
+    int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", pid);
+	if(ret != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => snprintf() failed\n", ret);
+        return ret;
+    }
+
+	process_pe = proc_mkdir(buf, proc_ums);
+	if (!process_pe) {
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for %d\n", pid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+	}
+    */
+    return UMS_SUCCESS;
+}
+int delete_process_proc_entry(process_t *process)
+{
+    return UMS_SUCCESS;
 }

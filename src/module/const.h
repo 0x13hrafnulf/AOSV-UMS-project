@@ -9,6 +9,7 @@
 #define UMS_MODULE_NAME_LOG "ums_sched: "
 #define UMS_PROC_NAME_LOG   "/proc/ums: "
 #define UMS_MINOR MISC_DYNAMIC_MINOR
+#define UMS_BUFFER_LEN       64
 
 #define UMS_ENTER                           _IO(UMS_IOC_MAGIC, 1)
 #define UMS_EXIT                            _IO(UMS_IOC_MAGIC, 2)
@@ -36,6 +37,7 @@
 #define UMS_ERROR_WORKER_ALREADY_FINISHED                   1011
 #define UMS_ERROR_NO_AVAILABLE_WORKERS                      1012
 #define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED          1013
+#define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY               1014
 
 
 typedef enum state {

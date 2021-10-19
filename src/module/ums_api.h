@@ -11,6 +11,7 @@
 #include <linux/slab.h>	
 #include <linux/types.h>
 #include <linux/time.h>
+#include <linux/proc_fs.h>
 
 extern spinlock_t spinlock_ums;
 extern unsigned long spinlock_flags_ums;
@@ -24,6 +25,10 @@ typedef struct worker worker_t;
 typedef struct scheduler_list scheduler_list_t;
 typedef struct scheduler scheduler_t;
 
+typedef struct process_proc_entry  process_proc_entry_t;
+typedef struct scheduler_proc_entry scheduler_proc_entry_t;
+typedef struct worker_proc_entry worker_proc_entry_t;
+
 int enter_ums(void);
 int exit_ums(void);
 ums_clid_t create_completion_list(void);
@@ -33,13 +38,11 @@ int exit_scheduling_mode(void);
 int execute_thread(ums_wid_t worker_id);
 int thread_yield(worker_status_t status);
 int dequeue_completion_list_items(list_params_t *params);
-
-int delete_process(process_t *proc);
-int delete_completion_lists_and_worker_threads(process_t *proc);
+int delete_process(process_t *process);
+int delete_completion_lists_and_worker_threads(process_t *process);
 int delete_workers_from_completion_list(worker_list_t *worker_list);
 int delete_workers_from_process_list(worker_list_t *worker_list);
-int delete_schedulers(process_t *proc);
-
+int delete_schedulers(process_t *process);
 process_t *create_process_node(pid_t pid);
 process_t *check_if_process_exists(pid_t pid);
 completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
@@ -47,8 +50,12 @@ scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid);
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid);
 state_t check_if_schedulers_state(process_t *proc);
 unsigned long get_exec_time(struct timespec64 *prev_time);
-
 int cleanup(void);
+
+int init_proc(void);
+int delete_proc(void);
+int create_process_proc_entry(process_t *process);
+int delete_process_proc_entry(process_t *process);
 
 typedef struct process_list {
     struct list_head list;
@@ -61,6 +68,7 @@ typedef struct process {
     completion_list_t *completion_lists;
     worker_list_t *worker_list;
     scheduler_list_t *scheduler_list;
+    process_proc_entry_t *proc_entry;
 } process_t;
 
 typedef struct completion_list {
@@ -94,6 +102,7 @@ typedef struct worker {
     struct list_head global_list;
     struct list_head local_list;
     state_t state;
+    worker_proc_entry_t *proc_entry;
     unsigned int switch_count;
     unsigned long total_exec_time;
     struct timespec64 time_of_the_last_switch;
@@ -118,7 +127,26 @@ typedef struct scheduler {
     struct fpu fpu_regs;
     completion_list_node_t *comp_list;
     struct list_head list;
+    scheduler_proc_entry_t *proc_entry;
     unsigned int switch_count;
     unsigned long time_needed_for_the_last_switch;
     struct timespec64 time_of_the_last_switch;
 } scheduler_t;
+
+typedef struct process_proc_entry {
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+	struct proc_dir_entry *child;
+} process_proc_entry_t;
+
+typedef struct scheduler_proc_entry {
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+	struct proc_dir_entry *child;
+	struct proc_dir_entry *info;
+} scheduler_proc_entry_t;
+
+typedef struct worker_proc_entry {
+	struct proc_dir_entry *pde;
+	struct proc_dir_entry *parent;
+} worker_proc_entry_t;
