@@ -879,7 +879,7 @@ static int scheduler_proc_open(struct inode *inode, struct file *file)
     pid_t pid;
     ums_sid_t sid;
 
-    if (kstrtoul(file->f_path.dentry->d_name.name, 10, &sid) != 0)
+    if (kstrtoul(file->f_path.dentry->d_parent->d_name.name, 10, &sid) != 0)
     {
         printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: scheduler_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
