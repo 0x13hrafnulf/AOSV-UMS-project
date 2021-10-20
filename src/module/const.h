@@ -38,6 +38,7 @@
 #define UMS_ERROR_NO_AVAILABLE_WORKERS                      1012
 #define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED          1013
 #define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY               1014
+#define UMS_ERROR_FAILED_TO_PROC_OPEN                       1015
 
 
 typedef enum state {

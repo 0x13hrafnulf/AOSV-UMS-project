@@ -144,6 +144,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     worker->pid = -1;
     worker->tid = current->tgid;
     worker->sid = -1;
+    worker->clid = comp_list->clid;
     worker->state = IDLE;
     worker->entry_point = kern_params.entry_point;
     worker->stack_addr = kern_params.stack_addr;
@@ -242,7 +243,7 @@ int exit_scheduling_mode(void)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(process, current->pid);
+    scheduler = check_if_scheduler_exists_run_by(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -276,7 +277,7 @@ int execute_thread(ums_wid_t worker_id)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(process, current->pid);
+    scheduler = check_if_scheduler_exists_run_by(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -347,7 +348,7 @@ int thread_yield(worker_status_t status)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
 
-    scheduler = check_if_scheduler_exists(process, current->pid);
+    scheduler = check_if_scheduler_exists_run_by(process, current->pid);
     if(scheduler == NULL)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
@@ -399,7 +400,7 @@ int dequeue_completion_list_items(list_params_t *params)
         return -UMS_ERROR_PROCESS_NOT_FOUND;
     }
     
-    scheduler = check_if_scheduler_exists(process, current->pid);
+    scheduler = check_if_scheduler_exists_run_by(process, current->pid);
     if(scheduler == NULL)
     {
         kfree(kern_params);
@@ -489,7 +490,28 @@ completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_
     return comp_list;
 }
 
-scheduler_t *check_if_scheduler_exists(process_t *process, pid_t pid)
+scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
+{
+    scheduler_t *scheduler;
+
+    if(!list_empty(&process->scheduler_list->list))
+    {
+        scheduler_t *temp = NULL;
+        scheduler_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
+        {
+            if(temp->sid == pid)
+            {
+                scheduler = temp;
+                break;
+            }
+        }
+    }
+  
+    return scheduler;
+}
+
+scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid)
 {
     scheduler_t *scheduler;
 
@@ -722,12 +744,27 @@ int delete_proc(void)
     return UMS_SUCCESS;
 }
 
+static struct file_operations scheduler_proc_file_ops = {
+    .owner = THIS_MODULE,
+    .open = scheduler_proc_open,
+    .read = seq_read,
+    .llseek = seq_lseek,
+    .release = seq_release
+};
+
+static struct file_operations worker_proc_file_ops = {
+    .owner = THIS_MODULE,
+    .open = worker_proc_open,
+    .read = seq_read,
+    .llseek = seq_lseek,
+    .release = seq_release
+};
+
 int create_process_proc_entry(process_t *process)
 {
     process_proc_entry_t *process_pe;
 	char buf[UMS_BUFFER_LEN];
 
-    process_pe = kmalloc(sizeof(process_proc_entry_t), GFP_KERNEL);
     
     int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", process->pid);
 	if(ret != 0)
@@ -735,23 +772,196 @@ int create_process_proc_entry(process_t *process)
         printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
         return ret;
     }
+
+    process_pe = kmalloc(sizeof(process_proc_entry_t), GFP_KERNEL);
+    process->proc_entry = process_pe;
     process_pe->parent = proc_ums;
 	process_pe->pde = proc_mkdir(buf, proc_ums);
 	if (!process_pe->pde) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for %d\n", pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
     process_pe->child = proc_mkdir("schedulers", process_pe->pde);
     if (!process_pe->child) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for %d\n", pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
-    process->proc_entry = process_pe;
-    
     return UMS_SUCCESS;
 }
+
+int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
+{
+    scheduler_proc_entry_t *scheduler_pe;
+    char buf[UMS_BUFFER_LEN];
+
+    int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", scheduler->sid);
+	if(ret != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
+        return ret;
+    }
+
+    scheduler_pe = kmalloc(sizeof(scheduler_proc_entry_t), GFP_KERNEL);
+    scheduler->proc_entry = scheduler_pe;
+    scheduler_pe->parent = process->proc_entry->child;
+    scheduler_pe->pde = proc_mkdir(buf, scheduler_pe->parent);
+    if (!scheduler_pe->pde) {
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+	}
+
+    scheduler_pe->child = proc_mkdir("workers", scheduler_pe->pde);
+    if (!scheduler_pe->child) {
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+	}
+
+    scheduler_pe->info = proc_create("info", S_IALLUGO, scheduler_pe->pde, &scheduler_proc_file_ops);
+    if (!scheduler_pe->info) {
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_create() failed for Scheduler:%d\n", scheduler->sid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+	}
+
+    if(!list_empty(&scheduler->comp_list->idle_list))
+    {
+        worker_t *temp = NULL;
+        worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->idle_list, local_list) 
+        {
+            create_worker_proc_entry(process, scheduler, temp);
+        }   
+    }
+
+    if(!list_empty(&scheduler->comp_list->busy_list))
+    {
+        worker_t *temp = NULL;
+        worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->busy_list, local_list) 
+        {
+            create_worker_proc_entry(process, scheduler, temp);
+        }
+    }
+
+    return UMS_SUCCESS;
+}
+
+int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker)
+{
+    worker_proc_entry_t *worker_pe;
+    char buf[UMS_BUFFER_LEN];
+
+    int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", worker->wid);
+    if(ret != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_worker_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
+        return ret;
+    }
+
+    worker_pe = kmalloc(sizeof(worker_proc_entry_t), GFP_KERNEL);
+    worker->proc_entry = worker_pe;
+    worker_pe->parent = scheduler_pe->child;
+
+    worker_pe->pde = proc_create(buf, S_IALLUGO, worker_pe->parent, &worker_proc_file_ops);
+    if (!worker_pe->pde) {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_worker_proc_entry() => proc_create() failed for Worker:%d\n", worker->wid);
+        return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
+    }
+
+    return UMS_SUCCESS;
+}
+
+static int scheduler_proc_open(struct inode *inode, struct file *file)
+{
+    process_t *process;
+    scheduler_t *scheduler;
+    pid_t pid;
+    ums_sid_t sid;
+
+    if (kstrtoul(file->f_path.dentry->d_name.name, 10, &sid) != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: scheduler_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
+        return -UMS_ERROR_FAILED_TO_PROC_OPEN;
+    }
+    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_name.name, 10, &pid) != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: scheduler_proc_open() => kstrtoul() failed for Process:%d\n", pid);
+        return -UMS_ERROR_FAILED_TO_PROC_OPEN;
+    }
+
+    process = check_if_process_exists(pid);
+    scheduler = check_if_scheduler_exists(process, sid);
+
+    int ret = single_open(file, scheduler_proc_show, scheduler);
+
+    return UMS_SUCCESS;
+}
+
+static int worker_proc_open(struct inode *inode, struct file *file)
+{
+    process_t *process;
+    worker_t *worker;
+    scheduler_t *scheduler;
+    pid_t pid;
+    ums_sid_t sid;
+    ums_wid_t wid;
+
+    if (kstrtoul(file->f_path.dentry->d_name.name, 10, &wid) != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Worker:%d\n", wid);
+        return -UMS_ERROR_FAILED_TO_PROC_OPEN;
+    }
+    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_name.name, 10, &sid) != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
+        return -UMS_ERROR_FAILED_TO_PROC_OPEN;
+    }
+    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_parent->d_parent->d_name.name, 10, &pid) != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Process:%d\n", pid);
+        return -UMS_ERROR_FAILED_TO_PROC_OPEN;
+    }
+
+    process = check_if_process_exists(pid);
+    scheduler = check_if_scheduler_exists(process, sid);
+    worker = check_if_worker_exists(process->worker_list, wid);
+
+    int ret = single_open(file, worker_proc_show, worker);
+
+    return UMS_SUCCESS;
+}
+
+static int scheduler_proc_show(struct seq_file *m, void *p)
+{
+    scheduler_t *scheduler = (scheduler_t*)m->private;
+    seq_printf(m, "Scheduler id: %d\n", scheduler->sid);
+    seq_printf(m, "Entry point: %p\n", (void*)scheduler->entry_point);
+    seq_printf(m, "Completion list: %d\n", scheduler->comp_list->clid);
+	seq_printf(m, "Number of times the scheduler switched to a worker thread: %d\n", scheduler->switch_count);
+    seq_printf(m, "Time needed for the last worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch);
+    if(scheduler->state == IDLE) seq_printf(m, "Scheduler status is: IDLE.\n");
+    else if(scheduler->state == RUNNING) seq_printf(m, "Scheduler status is: Running.\n");
+	else if(scheduler->state == FINISHED) seq_printf(m, "Scheduler status is: Finished.\n");
+
+    return UMS_SUCCESS;
+}
+
+static int worker_proc_show(struct seq_file *m, void *p)
+{
+    worker_t *worker = (worker_t*)m->private;
+    seq_printf(m, "Worker id: %d\n", worker->wid);
+    seq_printf(m, "Entry point: %p\n", (void*)worker->entry_point);
+    seq_printf(m, "Completion list: %d\n", worker->clid);
+	seq_printf(m, "Number of switches: %d\n", worker->switch_count);
+    seq_printf(m, "Total running time of the thread: %lu\n", worker->total_exec_time);
+    if(worker_t->state == IDLE) seq_printf(m, "Worker status is: IDLE.\n");
+    else if(worker_t->state == RUNNING) seq_printf(m, "Worker status is: Running.\n", );
+	else if(worker_t->state == FINISHED) seq_printf(m, "Worker status is: Finished.\n");
+
+    return UMS_SUCCESS;
+}
+
 int delete_process_proc_entry(process_t *process)
 {  
 

@@ -12,6 +12,7 @@
 #include <linux/types.h>
 #include <linux/time.h>
 #include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
 extern spinlock_t spinlock_ums;
 extern unsigned long spinlock_flags_ums;
@@ -47,6 +48,7 @@ process_t *create_process_node(pid_t pid);
 process_t *check_if_process_exists(pid_t pid);
 completion_list_node_t *check_if_completion_list_exists(process_t *proc, ums_clid_t clid);
 scheduler_t *check_if_scheduler_exists(process_t *proc, pid_t pid);
+scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid);
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid);
 state_t check_if_schedulers_state(process_t *proc);
 unsigned long get_exec_time(struct timespec64 *prev_time);
@@ -55,6 +57,8 @@ int cleanup(void);
 int init_proc(void);
 int delete_proc(void);
 int create_process_proc_entry(process_t *process);
+int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler);
+int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker)
 int delete_process_proc_entry(process_t *process);
 
 typedef struct process_list {
@@ -95,6 +99,7 @@ typedef struct worker {
     pid_t pid;  //Run by
     pid_t tid;  
     ums_sid_t sid;
+    ums_clid_t clid;
     unsigned long entry_point;
     unsigned long stack_addr; 
     struct pt_regs regs;
