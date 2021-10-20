@@ -744,20 +744,18 @@ int delete_proc(void)
     return UMS_SUCCESS;
 }
 
-static struct file_operations scheduler_proc_file_ops = {
-    .owner = THIS_MODULE,
-    .open = scheduler_proc_open,
-    .read = seq_read,
-    .llseek = seq_lseek,
-    .release = seq_release
+static struct proc_ops scheduler_proc_file_ops = {
+    .proc_open = scheduler_proc_open,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = seq_release
 };
 
-static struct file_operations worker_proc_file_ops = {
-    .owner = THIS_MODULE,
-    .open = worker_proc_open,
-    .read = seq_read,
-    .llseek = seq_lseek,
-    .release = seq_release
+static struct proc_ops worker_proc_file_ops = {
+    .proc_open = worker_proc_open,
+    .proc_read = seq_read,
+    .proc_lseek = seq_lseek,
+    .proc_release = seq_release
 };
 
 int create_process_proc_entry(process_t *process)
