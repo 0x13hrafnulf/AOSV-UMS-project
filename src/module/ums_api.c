@@ -5,6 +5,12 @@ process_list_t process_list = {
     .list = LIST_HEAD_INIT(process_list.list),
 };
 
+static int scheduler_proc_open(struct inode *inode, struct file *file);
+static int worker_proc_open(struct inode *inode, struct file *file);
+static int scheduler_proc_show(struct seq_file *m, void *p);
+static int worker_proc_show(struct seq_file *m, void *p);
+
+
 int enter_ums(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_ums()\n");
@@ -518,7 +524,7 @@ scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
         scheduler_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
-            if(temp->sid == pid)
+            if(temp->sid == sid)
             {
                 scheduler = temp;
                 break;
@@ -797,13 +803,13 @@ int create_process_proc_entry(process_t *process)
     process_pe->parent = proc_ums;
 	process_pe->pde = proc_mkdir(buf, proc_ums);
 	if (!process_pe->pde) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
     process_pe->child = proc_mkdir("schedulers", process_pe->pde);
     if (!process_pe->child) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
@@ -843,21 +849,21 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
-    if(!list_empty(&scheduler->comp_list->idle_list))
+    if(!list_empty(&scheduler->comp_list->idle_list->list))
     {
         worker_t *temp = NULL;
         worker_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->idle_list, local_list) 
+        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->idle_list->list, local_list) 
         {
             create_worker_proc_entry(process, scheduler, temp);
         }   
     }
 
-    if(!list_empty(&scheduler->comp_list->busy_list))
+    if(!list_empty(&scheduler->comp_list->busy_list->list))
     {
         worker_t *temp = NULL;
         worker_t *safe_temp = NULL;
-        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->busy_list, local_list) 
+        list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->busy_list->list, local_list) 
         {
             create_worker_proc_entry(process, scheduler, temp);
         }
@@ -880,7 +886,7 @@ int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_
 
     worker_pe = kmalloc(sizeof(worker_proc_entry_t), GFP_KERNEL);
     worker->proc_entry = worker_pe;
-    worker_pe->parent = scheduler_pe->child;
+    worker_pe->parent = scheduler->proc_entry->child;
 
     worker_pe->pde = proc_create(buf, S_IALLUGO, worker_pe->parent, &worker_proc_file_ops);
     if (!worker_pe->pde) {
@@ -895,8 +901,7 @@ static int scheduler_proc_open(struct inode *inode, struct file *file)
 {
     process_t *process;
     scheduler_t *scheduler;
-    pid_t pid;
-    ums_sid_t sid;
+    unsigned long pid, sid;
 
     if (kstrtoul(file->f_path.dentry->d_parent->d_name.name, 10, &sid) != 0)
     {
@@ -922,9 +927,7 @@ static int worker_proc_open(struct inode *inode, struct file *file)
     process_t *process;
     worker_t *worker;
     scheduler_t *scheduler;
-    pid_t pid;
-    ums_sid_t sid;
-    ums_wid_t wid;
+    unsigned long pid, sid, wid;
 
     if (kstrtoul(file->f_path.dentry->d_name.name, 10, &wid) != 0)
     {
@@ -974,9 +977,9 @@ static int worker_proc_show(struct seq_file *m, void *p)
     seq_printf(m, "Completion list: %d\n", worker->clid);
 	seq_printf(m, "Number of switches: %d\n", worker->switch_count);
     seq_printf(m, "Total running time of the thread: %lu\n", worker->total_exec_time);
-    if(worker_t->state == IDLE) seq_printf(m, "Worker status is: IDLE.\n");
-    else if(worker_t->state == RUNNING) seq_printf(m, "Worker status is: Running.\n", );
-	else if(worker_t->state == FINISHED) seq_printf(m, "Worker status is: Finished.\n");
+    if(worker->state == IDLE) seq_printf(m, "Worker status is: IDLE.\n");
+    else if(worker->state == RUNNING) seq_printf(m, "Worker status is: Running.\n");
+	else if(worker->state == FINISHED) seq_printf(m, "Worker status is: Finished.\n");
 
     return UMS_SUCCESS;
 }

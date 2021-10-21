@@ -58,7 +58,7 @@ int init_proc(void);
 int delete_proc(void);
 int create_process_proc_entry(process_t *process);
 int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler);
-int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker)
+int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker);
 int delete_process_proc_entry(process_t *process);
 
 typedef struct process_list {
