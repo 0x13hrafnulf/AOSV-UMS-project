@@ -69,6 +69,7 @@ typedef struct process_list {
 typedef struct process {
     pid_t pid;
     struct list_head list;
+    state_t state;
     completion_list_t *completion_lists;
     worker_list_t *worker_list;
     scheduler_list_t *scheduler_list;

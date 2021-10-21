@@ -18,6 +18,13 @@ int enter_ums(void)
     }
 
     process = create_process_node(current->pid);
+    
+    int ret = create_process_proc_entry(process);
+    if(ret != 0)
+    {
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG "--- Error: enter_ums() => %d\n", ret);
+        return ret;
+    }
 
     return UMS_SUCCESS;
 }
@@ -34,7 +41,8 @@ int exit_ums(void)
         return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD;
     }
 
-    delete_process(process);
+    process->state = FINISHED;
+    //delete_process(process);
     
     return UMS_SUCCESS;
 }
@@ -66,6 +74,8 @@ process_t *create_process_node(pid_t pid)
     process->scheduler_list = sched_list;
     INIT_LIST_HEAD(&sched_list->list);
     sched_list->scheduler_count = 0;
+
+    
 
     return process;
 }
@@ -225,6 +235,14 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
     process->scheduler_list->scheduler_count++;
+
+    ret = create_scheduler_proc_entry(process, scheduler);
+    if(ret != 0)
+    {
+        printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Error: enter_scheduling_mode(): %d\n", ret);
+        return ret;
+    }
+
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
         
     return scheduler_id;
@@ -591,6 +609,9 @@ int delete_process(process_t *process)
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
+    proc_remove(process->proc_entry->child);   
+    proc_remove(process->proc_entry->pde);
+    kfree(process->proc_entry);
     kfree(process);
     ret = UMS_SUCCESS;
 
@@ -606,6 +627,9 @@ int delete_process_safe(process_t *process)
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
+    proc_remove(process->proc_entry->child);   
+    proc_remove(process->proc_entry->pde);
+    kfree(process->proc_entry);
     kfree(process);
     ret = UMS_SUCCESS;
 
@@ -647,9 +671,11 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, local_list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
-            printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker status: %d\n", temp->state);
             list_del(&temp->local_list);
             list_del(&temp->global_list);
+            //Proc entries
+            proc_remove(temp->proc_entry->pde);
+            kfree(temp->proc_entry);
             kfree(temp);
         }
     }
@@ -666,8 +692,9 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
         list_for_each_entry_safe(temp, safe_temp, &worker_list->list, global_list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
-
             list_del(&temp->global_list);
+            proc_remove(temp->proc_entry->pde);
+            kfree(temp->proc_entry);
             kfree(temp);
         }
     }
@@ -684,8 +711,12 @@ int delete_schedulers(process_t *process)
         list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Scheduler:%d was deleted.\n", temp->sid);
-
+            //Proc entries
             list_del(&temp->list);
+            proc_remove(temp->proc_entry->child);
+            proc_remove(temp->proc_entry->info);
+            proc_remove(temp->proc_entry->pde);
+            kfree(temp->proc_entry);
             kfree(temp);
         }
     }
