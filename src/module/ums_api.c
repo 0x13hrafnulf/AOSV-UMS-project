@@ -731,7 +731,6 @@ int delete_schedulers(process_t *process)
         list_for_each_entry_safe(temp, safe_temp, &process->scheduler_list->list, list) 
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Scheduler:%d was deleted.\n", temp->sid);
-            //Proc entries
             list_del(&temp->list);
             kfree(temp->proc_entry);
             kfree(temp);
@@ -765,8 +764,8 @@ unsigned long get_exec_time(struct timespec64 *prev_time)
 
     ktime_get_real_ts64(&current_time);
 
-    cur = current_time.tv_sec * 1000 + current_time.tv_nsec / 1000000;
-    prev = prev_time->tv_sec * 1000 + prev_time->tv_nsec / 1000000;
+    cur = current_time.tv_sec * 1000000000 + current_time.tv_nsec;
+    prev = prev_time->tv_sec * 1000000000 + prev_time->tv_nsec;
 
     return cur - prev;
 }
