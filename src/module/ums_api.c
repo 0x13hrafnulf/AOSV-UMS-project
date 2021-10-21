@@ -609,8 +609,6 @@ int delete_process(process_t *process)
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
-    proc_remove(process->proc_entry->child);   
-    proc_remove(process->proc_entry->pde);
     kfree(process->proc_entry);
     kfree(process);
     ret = UMS_SUCCESS;
@@ -627,8 +625,6 @@ int delete_process_safe(process_t *process)
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
-    proc_remove(process->proc_entry->child);   
-    proc_remove(process->proc_entry->pde);
     kfree(process->proc_entry);
     kfree(process);
     ret = UMS_SUCCESS;
@@ -673,8 +669,6 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
             list_del(&temp->local_list);
             list_del(&temp->global_list);
-            //Proc entries
-            proc_remove(temp->proc_entry->pde);
             kfree(temp->proc_entry);
             kfree(temp);
         }
@@ -693,7 +687,6 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
         {
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Worker thread:%d was deleted.\n", temp->wid);
             list_del(&temp->global_list);
-            proc_remove(temp->proc_entry->pde);
             kfree(temp->proc_entry);
             kfree(temp);
         }
@@ -713,9 +706,6 @@ int delete_schedulers(process_t *process)
             printk(KERN_INFO UMS_MODULE_NAME_LOG "--- Scheduler:%d was deleted.\n", temp->sid);
             //Proc entries
             list_del(&temp->list);
-            proc_remove(temp->proc_entry->child);
-            proc_remove(temp->proc_entry->info);
-            proc_remove(temp->proc_entry->pde);
             kfree(temp->proc_entry);
             kfree(temp);
         }
@@ -988,15 +978,5 @@ static int worker_proc_show(struct seq_file *m, void *p)
     else if(worker_t->state == RUNNING) seq_printf(m, "Worker status is: Running.\n", );
 	else if(worker_t->state == FINISHED) seq_printf(m, "Worker status is: Finished.\n");
 
-    return UMS_SUCCESS;
-}
-
-int delete_process_proc_entry(process_t *process)
-{  
-
-    proc_remove(process->proc_entry->child);
-    proc_remove(process->proc_entry->pde);
-    kfree(process->proc_entry);
-    
     return UMS_SUCCESS;
 }
