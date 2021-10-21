@@ -577,6 +577,27 @@ worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
     return worker;
 }
 
+worker_t *check_if_worker_exists_global(worker_list_t *worker_list, ums_wid_t wid)
+{
+    worker_t *worker;
+
+    if(!list_empty(&worker_list->list))
+    {
+        worker_t *temp = NULL;
+        worker_t *safe_temp = NULL;
+        list_for_each_entry_safe(temp, safe_temp, &worker_list->list, global_list) 
+        {
+            if(temp->wid == wid)
+            {
+                worker = temp;
+                break;
+            }
+        }
+    }
+  
+    return worker;
+}
+
 state_t check_schedulers_state(process_t *process)
 {
     state_t progress = FINISHED;
@@ -757,7 +778,7 @@ int init_proc(void)
     proc_ums = proc_mkdir(UMS_NAME, NULL);
     if(!proc_ums)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for " UMS_NAME "\n");
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_process_proc_entry() => proc_mkdir() failed for " UMS_NAME "\n");
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
     }
 
@@ -792,9 +813,9 @@ int create_process_proc_entry(process_t *process)
 
     
     int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", process->pid);
-	if(ret != 0)
+	if(ret < 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_process_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
         return ret;
     }
 
@@ -803,13 +824,13 @@ int create_process_proc_entry(process_t *process)
     process_pe->parent = proc_ums;
 	process_pe->pde = proc_mkdir(buf, proc_ums);
 	if (!process_pe->pde) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
     process_pe->child = proc_mkdir("schedulers", process_pe->pde);
     if (!process_pe->child) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_process_proc_entry() => proc_mkdir() failed for Process:%d\n", process->pid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
@@ -822,9 +843,9 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
     char buf[UMS_BUFFER_LEN];
 
     int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", scheduler->sid);
-	if(ret != 0)
+	if(ret < 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_scheduler_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
         return ret;
     }
 
@@ -833,19 +854,19 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
     scheduler_pe->parent = process->proc_entry->child;
     scheduler_pe->pde = proc_mkdir(buf, scheduler_pe->parent);
     if (!scheduler_pe->pde) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
     scheduler_pe->child = proc_mkdir("workers", scheduler_pe->pde);
     if (!scheduler_pe->child) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_scheduler_proc_entry() => proc_mkdir() failed for Scheduler:%d\n", scheduler->sid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
     scheduler_pe->info = proc_create("info", S_IALLUGO, scheduler_pe->pde, &scheduler_proc_file_ops);
     if (!scheduler_pe->info) {
-		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_scheduler_proc_entry() => proc_create() failed for Scheduler:%d\n", scheduler->sid);
+		printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_scheduler_proc_entry() => proc_create() failed for Scheduler:%d\n", scheduler->sid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
 	}
 
@@ -878,9 +899,9 @@ int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_
     char buf[UMS_BUFFER_LEN];
 
     int ret = snprintf(buf, UMS_BUFFER_LEN, "%d", worker->wid);
-    if(ret != 0)
+    if(ret < 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_worker_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_worker_proc_entry() => snprintf() failed to copy %d bytes\n", ret);
         return ret;
     }
 
@@ -890,7 +911,7 @@ int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_
 
     worker_pe->pde = proc_create(buf, S_IALLUGO, worker_pe->parent, &worker_proc_file_ops);
     if (!worker_pe->pde) {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: create_worker_proc_entry() => proc_create() failed for Worker:%d\n", worker->wid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: create_worker_proc_entry() => proc_create() failed for Worker:%d\n", worker->wid);
         return -UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY;
     }
 
@@ -901,16 +922,16 @@ static int scheduler_proc_open(struct inode *inode, struct file *file)
 {
     process_t *process;
     scheduler_t *scheduler;
-    unsigned long pid, sid;
+    int pid, sid;
 
-    if (kstrtoul(file->f_path.dentry->d_parent->d_name.name, 10, &sid) != 0)
+    if (kstrtoint(file->f_path.dentry->d_parent->d_name.name, 10, &sid) != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: scheduler_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: scheduler_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
     }
-    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_name.name, 10, &pid) != 0)
+    if (kstrtoint(file->f_path.dentry->d_parent->d_parent->d_parent->d_name.name, 10, &pid) != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: scheduler_proc_open() => kstrtoul() failed for Process:%d\n", pid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: scheduler_proc_open() => kstrtoul() failed for Process:%d\n", pid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
     }
 
@@ -927,27 +948,27 @@ static int worker_proc_open(struct inode *inode, struct file *file)
     process_t *process;
     worker_t *worker;
     scheduler_t *scheduler;
-    unsigned long pid, sid, wid;
+    int pid, sid, wid;
 
-    if (kstrtoul(file->f_path.dentry->d_name.name, 10, &wid) != 0)
+    if (kstrtoint(file->f_path.dentry->d_name.name, 10, &wid) != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Worker:%d\n", wid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: worker_proc_open() => kstrtoul() failed for Worker:%d\n", wid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
     }
-    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_name.name, 10, &sid) != 0)
+    if (kstrtoint(file->f_path.dentry->d_parent->d_parent->d_name.name, 10, &sid) != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "--- Error: worker_proc_open() => kstrtoul() failed for Scheduler:%d\n", sid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
     }
-    if (kstrtoul(file->f_path.dentry->d_parent->d_parent->d_parent->d_parent->d_name.name, 10, &pid) != 0)
+    if (kstrtoint(file->f_path.dentry->d_parent->d_parent->d_parent->d_parent->d_name.name, 10, &pid) != 0)
     {
-        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG"--- Error: worker_proc_open() => kstrtoul() failed for Process:%d\n", pid);
+        printk(KERN_ALERT UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG" --- Error: worker_proc_open() => kstrtoul() failed for Process:%d\n", pid);
         return -UMS_ERROR_FAILED_TO_PROC_OPEN;
     }
 
     process = check_if_process_exists(pid);
     scheduler = check_if_scheduler_exists(process, sid);
-    worker = check_if_worker_exists(process->worker_list, wid);
+    worker = check_if_worker_exists_global(process->worker_list, wid);
 
     int ret = single_open(file, worker_proc_show, worker);
 
