@@ -136,8 +136,12 @@ typedef struct scheduler {
     struct list_head list;
     scheduler_proc_entry_t *proc_entry;
     unsigned int switch_count;
+    unsigned long avg_switch_time;
+    unsigned long avg_switch_time_full;
     unsigned long time_needed_for_the_last_switch;
+    unsigned long time_needed_for_the_last_switch_full;
     struct timespec64 time_of_the_last_switch;
+    struct timespec64 time_of_the_last_switch_full;
 } scheduler_t;
 
 typedef struct process_proc_entry {

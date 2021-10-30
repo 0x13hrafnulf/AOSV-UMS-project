@@ -250,6 +250,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     }
 
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
+    ktime_get_real_ts64(&scheduler->time_of_the_last_switch_full);
         
     return scheduler_id;
 }
@@ -336,6 +337,7 @@ int execute_thread(ums_wid_t worker_id)
     worker->sid = scheduler->sid;
     worker->pid = current->pid;
     scheduler->wid = worker->wid;
+    scheduler->state = RUNNING;
 
     list_move_tail(&(worker->local_list), &comp_list->busy_list->list);
     comp_list->idle_list->worker_count--;
@@ -348,6 +350,10 @@ int execute_thread(ums_wid_t worker_id)
     copy_kernel_to_fxregs(&worker->fpu_regs.state.fxsave);
 
     scheduler->time_needed_for_the_last_switch += get_exec_time(&scheduler->time_of_the_last_switch);
+    scheduler->time_needed_for_the_last_switch_full += get_exec_time(&scheduler->time_of_the_last_switch_full);
+
+    scheduler->avg_switch_time = scheduler->time_needed_for_the_last_switch / scheduler->switch_count;
+    scheduler->avg_switch_time_full = scheduler->time_needed_for_the_last_switch_full / scheduler->switch_count;
 
     return UMS_SUCCESS;
 }
@@ -386,9 +392,11 @@ int thread_yield(worker_status_t status)
     }
 
     worker->total_exec_time += get_exec_time(&worker->time_of_the_last_switch);
+    ktime_get_real_ts64(&scheduler->time_of_the_last_switch_full);
 
     worker->state = (status == PAUSE) ? IDLE : FINISHED;
     scheduler->wid = -1;
+    scheduler->state = IDLE;
     comp_list->finished_count = (status == PAUSE) ? comp_list->finished_count : comp_list->finished_count + 1;
 
     if(status == PAUSE)
@@ -875,7 +883,10 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->idle_list->list, local_list) 
         {
-            create_worker_proc_entry(process, scheduler, temp);
+            if(temp->sid == scheduler->sid)
+            {
+                create_worker_proc_entry(process, scheduler, temp);
+            }   
         }   
     }
 
@@ -885,7 +896,10 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->busy_list->list, local_list) 
         {
-            create_worker_proc_entry(process, scheduler, temp);
+            if(temp->sid == scheduler->sid)
+            {
+                create_worker_proc_entry(process, scheduler, temp);
+            }  
         }
     }
 
@@ -982,6 +996,9 @@ static int scheduler_proc_show(struct seq_file *m, void *p)
     seq_printf(m, "Completion list: %d\n", scheduler->comp_list->clid);
 	seq_printf(m, "Number of times the scheduler switched to a worker thread: %d\n", scheduler->switch_count);
     seq_printf(m, "Time needed for the last worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch);
+    seq_printf(m, "Time needed for the last full worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch_full);
+    seq_printf(m, "Average time needed for the worker thread switch: %lu\n", scheduler->avg_switch_time);
+    seq_printf(m, "Average time needed for the full worker thread switch: %lu\n", scheduler->avg_switch_time_full);
     if(scheduler->state == IDLE) seq_printf(m, "Scheduler status is: IDLE.\n");
     else if(scheduler->state == RUNNING) seq_printf(m, "Scheduler status is: Running.\n");
 	else if(scheduler->state == FINISHED) seq_printf(m, "Scheduler status is: Finished.\n");
@@ -993,6 +1010,7 @@ static int worker_proc_show(struct seq_file *m, void *p)
 {
     worker_t *worker = (worker_t*)m->private;
     seq_printf(m, "Worker id: %d\n", worker->wid);
+    seq_printf(m, "Run by Scheduler#: %d\n", worker->sid);
     seq_printf(m, "Entry point: %p\n", (void*)worker->entry_point);
     seq_printf(m, "Completion list: %d\n", worker->clid);
 	seq_printf(m, "Number of switches: %d\n", worker->switch_count);
