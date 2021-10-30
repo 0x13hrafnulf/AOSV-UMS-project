@@ -883,10 +883,9 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->idle_list->list, local_list) 
         {
-            if(temp->sid == scheduler->sid)
-            {
-                create_worker_proc_entry(process, scheduler, temp);
-            }   
+
+            create_worker_proc_entry(process, scheduler, temp);
+ 
         }   
     }
 
@@ -896,10 +895,9 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
         worker_t *safe_temp = NULL;
         list_for_each_entry_safe(temp, safe_temp, &scheduler->comp_list->busy_list->list, local_list) 
         {
-            if(temp->sid == scheduler->sid)
-            {
-                create_worker_proc_entry(process, scheduler, temp);
-            }  
+
+            create_worker_proc_entry(process, scheduler, temp);
+
         }
     }
 
