@@ -1,16 +1,54 @@
+/**
+ * Copyright (C) 2021 Bektur Umarbaev <hrafnulf13@gmail.com>
+ *
+ * This file is part of the User Mode thread Scheduling (UMS) kernel module.
+ *
+ * UMS kernel module is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * UMS kernel module is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with UMS kernel module.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
+ * @brief Contains implementations of the UMS kernel module API
+ *
+ * @file ums_api.c
+ * @author Bektur Umarbaev <hrafnulf13@gmail.com>
+ * @date 
+ */
 #include "ums_api.h"
 
+/*
+ * Global variables
+ */
 static struct proc_dir_entry *proc_ums;
 process_list_t process_list = {
     .list = LIST_HEAD_INIT(process_list.list),
 };
 
+/*
+ * Static functions
+ */
 static int scheduler_proc_open(struct inode *inode, struct file *file);
 static int worker_proc_open(struct inode *inode, struct file *file);
 static int scheduler_proc_show(struct seq_file *m, void *p);
 static int worker_proc_show(struct seq_file *m, void *p);
 
-
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int enter_ums(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_ums()\n");
@@ -35,6 +73,12 @@ int enter_ums(void)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int exit_ums(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_ums()\n");
@@ -53,6 +97,12 @@ int exit_ums(void)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 process_t *create_process_node(pid_t pid)
 {
     process_t *process;
@@ -86,6 +136,12 @@ process_t *create_process_node(pid_t pid)
     return process;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_clid_t create_completion_list()
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_completion_list()\n");
@@ -124,6 +180,12 @@ ums_clid_t create_completion_list()
     return list_id;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_wid_t create_worker_thread(worker_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of create_worker_thread()\n");
@@ -183,6 +245,12 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     return worker_id;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of enter_scheduling_mode()\n");
@@ -255,6 +323,12 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     return scheduler_id;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int exit_scheduling_mode(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of exit_scheduling_mode()\n");
@@ -287,6 +361,12 @@ int exit_scheduling_mode(void)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int execute_thread(ums_wid_t worker_id)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of execute_thread()\n");
@@ -358,6 +438,12 @@ int execute_thread(ums_wid_t worker_id)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int thread_yield(worker_status_t status)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of thread_yield()\n");
@@ -415,6 +501,12 @@ int thread_yield(worker_status_t status)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int dequeue_completion_list_items(list_params_t *params)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG "-- Invocation of dequeue_completion_list_items()\n");
@@ -480,6 +572,12 @@ int dequeue_completion_list_items(list_params_t *params)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 process_t *check_if_process_exists(pid_t pid)
 {
     process_t *process = NULL;
@@ -501,6 +599,12 @@ process_t *check_if_process_exists(pid_t pid)
     return process;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_clid_t clid)
 {
     completion_list_node_t *comp_list;
@@ -522,6 +626,12 @@ completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_
     return comp_list;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
 {
     scheduler_t *scheduler;
@@ -543,6 +653,12 @@ scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
     return scheduler;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid)
 {
     scheduler_t *scheduler;
@@ -564,6 +680,12 @@ scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid)
     return scheduler;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
 {
     worker_t *worker;
@@ -585,6 +707,12 @@ worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
     return worker;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 worker_t *check_if_worker_exists_global(worker_list_t *worker_list, ums_wid_t wid)
 {
     worker_t *worker;
@@ -606,6 +734,12 @@ worker_t *check_if_worker_exists_global(worker_list_t *worker_list, ums_wid_t wi
     return worker;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 state_t check_schedulers_state(process_t *process)
 {
     state_t progress = FINISHED;
@@ -628,6 +762,12 @@ state_t check_schedulers_state(process_t *process)
     return progress;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_process(process_t *process)
 {
     int ret;
@@ -652,6 +792,12 @@ int delete_process(process_t *process)
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_process_safe(process_t *process)
 {
     int ret;
@@ -668,6 +814,12 @@ int delete_process_safe(process_t *process)
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_completion_lists_and_worker_threads(process_t *process)
 {
     if(!list_empty(&process->completion_lists->list))
@@ -693,6 +845,12 @@ int delete_completion_lists_and_worker_threads(process_t *process)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_workers_from_completion_list(worker_list_t *worker_list)
 {
     if(!list_empty(&worker_list->list))
@@ -711,7 +869,12 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
     return UMS_SUCCESS;
 }
 
-//Might delete this function in future, have it just in case
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_workers_from_process_list(worker_list_t *worker_list)
 {
     if(!list_empty(&worker_list->list))
@@ -729,6 +892,12 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_schedulers(process_t *process)
 {
 
@@ -749,6 +918,12 @@ int delete_schedulers(process_t *process)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int cleanup()
 {
 
@@ -765,6 +940,12 @@ int cleanup()
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 unsigned long get_exec_time(struct timespec64 *prev_time)
 {
     struct timespec64 current_time;
@@ -778,6 +959,12 @@ unsigned long get_exec_time(struct timespec64 *prev_time)
     return cur - prev;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int init_proc(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "> Initialization.\n");
@@ -792,6 +979,12 @@ int init_proc(void)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int delete_proc(void)
 {
     printk(KERN_INFO UMS_MODULE_NAME_LOG UMS_PROC_NAME_LOG "> Deleted.\n");
@@ -799,6 +992,9 @@ int delete_proc(void)
     return UMS_SUCCESS;
 }
 
+/*
+ * Static declarations of file operations for proc filesystem
+ */
 static struct proc_ops scheduler_proc_file_ops = {
     .proc_open = scheduler_proc_open,
     .proc_read = seq_read,
@@ -813,6 +1009,12 @@ static struct proc_ops worker_proc_file_ops = {
     .proc_release = seq_release
 };
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int create_process_proc_entry(process_t *process)
 {
     process_proc_entry_t *process_pe;
@@ -844,6 +1046,12 @@ int create_process_proc_entry(process_t *process)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
 {
     scheduler_proc_entry_t *scheduler_pe;
@@ -904,6 +1112,12 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker)
 {
     worker_proc_entry_t *worker_pe;
@@ -929,6 +1143,12 @@ int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static int scheduler_proc_open(struct inode *inode, struct file *file)
 {
     process_t *process;
@@ -954,6 +1174,12 @@ static int scheduler_proc_open(struct inode *inode, struct file *file)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static int worker_proc_open(struct inode *inode, struct file *file)
 {
     process_t *process;
@@ -986,6 +1212,12 @@ static int worker_proc_open(struct inode *inode, struct file *file)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static int scheduler_proc_show(struct seq_file *m, void *p)
 {
     scheduler_t *scheduler = (scheduler_t*)m->private;
@@ -1004,6 +1236,12 @@ static int scheduler_proc_show(struct seq_file *m, void *p)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static int worker_proc_show(struct seq_file *m, void *p)
 {
     worker_t *worker = (worker_t*)m->private;

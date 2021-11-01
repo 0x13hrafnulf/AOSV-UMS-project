@@ -19,7 +19,7 @@
  */
 
 /**
- * @brief Contains essential UMS library functions 
+ * @brief Contains implementations of the essential UMS library functions 
  *
  * @file ums_lib.c
  * @author Bektur Umarbaev <hrafnulf13@gmail.com>
@@ -38,31 +38,24 @@
 #include <sched.h>
 #include <unistd.h>
 
-///
-int ums_dev = -UMS_ERROR;  
-
-///                                
+/*
+ * Global variables
+ */
+int ums_dev = -UMS_ERROR;                                 
 pthread_mutex_t ums_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-///
 ums_completion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
     .count = 0
 };
-
-///
 ums_worker_list_t workers = {
     .list = LIST_HEAD_INIT(workers.list),
     .count = 0
 };
-
-///
 ums_scheduler_list_t schedulers = {
     .list = LIST_HEAD_INIT(schedulers.list),
     .count = 0
 };
-
-///
 __thread ums_clid_t completion_list_id;
 
 /** @brief 

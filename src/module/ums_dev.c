@@ -1,3 +1,30 @@
+/**
+ * Copyright (C) 2021 Bektur Umarbaev <hrafnulf13@gmail.com>
+ *
+ * This file is part of the User Mode thread Scheduling (UMS) kernel module.
+ *
+ * UMS kernel module is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * UMS kernel module is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with UMS kernel module.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
+ * @brief Contains implementations of the UMS miscdevice
+ *
+ * @file ums_dev.c
+ * @author Bektur Umarbaev <hrafnulf13@gmail.com>
+ * @date 
+ */
 #include "ums_dev.h"
 
 #include <linux/kernel.h>
@@ -10,6 +37,9 @@ MODULE_AUTHOR("Bektur Umarbaev");
 MODULE_DESCRIPTION("User Mode thread Scheduling (UMS)");
 MODULE_LICENSE("GPL");
 
+/*
+ * Global variables
+ */
 DEFINE_SPINLOCK(spinlock_ums);
 unsigned long spinlock_flags_ums;
 
@@ -28,6 +58,12 @@ static struct miscdevice dev_ums = {
 	.fops		= &fops_ums,
 };
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 {
     int ret = 0;
@@ -77,6 +113,12 @@ static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 	return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static int __init init_dev(void)
 {
     int ret;
@@ -102,6 +144,12 @@ static int __init init_dev(void)
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 static void __exit exit_dev(void)
 {
     delete_proc();
