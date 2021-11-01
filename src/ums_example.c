@@ -19,6 +19,7 @@ void loop1()
 
     ums_exit_scheduling_mode();
 }
+
 void loop2()
 {
     printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
@@ -28,6 +29,7 @@ void loop2()
     ums_execute_thread(worker_id);
     ums_exit_scheduling_mode();
 }
+
 void function1(void *args)
 {
     printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);

@@ -1,3 +1,31 @@
+/**
+ * Copyright (C) 2021 Bektur Umarbaev <hrafnulf13@gmail.com>
+ *
+ * This file is part of the User Mode thread Scheduling (UMS) library.
+ *
+ * UMS library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * UMS library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with UMS library.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
+ * @brief The header that contains essential UMS library functions and has to be included by the user in order to use the UMS library
+ *
+ * @file ums_lib.h
+ * @author Bektur Umarbaev <hrafnulf13@gmail.com>
+ * @date 
+ */
+
 #pragma once
 
 #include "const.h"
@@ -35,43 +63,84 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
 int check_if_worker_exists(ums_wid_t wid);
 ums_scheduler_t *check_if_scheduler_exists();
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_completion_list {
-    struct list_head list;
-    unsigned int count;
+    struct list_head list;                          /**<  */
+    unsigned int count;                             /**<  */
 } ums_completion_list_t;
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_completion_list_node {
-    ums_clid_t clid;
-    unsigned int worker_count;
-    unsigned int usage;
-    pthread_cond_t update;
-    pthread_mutex_t mutex;
-    struct list_head list;
-    list_params_t *list_params;
+    ums_clid_t clid;                                /**<  */
+    unsigned int worker_count;                      /**<  */
+    unsigned int usage;                             /**<  */
+    pthread_cond_t update;                          /**<  */
+    pthread_mutex_t mutex;                          /**<  */
+    struct list_head list;                          /**<  */
+    list_params_t *list_params;                     /**<  */
 } ums_completion_list_node_t;
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_worker_list {
-    struct list_head list;
-    unsigned int count;
+    struct list_head list;                          /**<  */
+    unsigned int count;                             /**<  */
 } ums_worker_list_t;
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_worker {
-    ums_wid_t wid;
-    struct list_head list;
-    worker_params_t *worker_params;
+    ums_wid_t wid;                                  /**<  */
+    struct list_head list;                          /**<  */
+    worker_params_t *worker_params;                 /**<  */
 } ums_worker_t;
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_scheduler_list {
-    struct list_head list;
-    unsigned int count;
+    struct list_head list;                          /**<  */
+    unsigned int count;                             /**<  */
 } ums_scheduler_list_t;
 
+/** @brief 
+ *.
+ *
+ */
 typedef struct ums_scheduler {
-    struct list_head list;
-    pthread_t tid;
-    scheduler_params_t *sched_params;
+    struct list_head list;                          /**<  */
+    pthread_t tid;                                  /**<  */
+    scheduler_params_t *sched_params;               /**<  */
 } ums_scheduler_t;
 
+/** @brief 
+ *
+ * @param type
+ * @return 
+ */
 #define init(type) (type*)malloc(sizeof(type))
+
+/** @brief 
+ *
+ * @param val
+ * @return 
+ */
 #define delete(val) free(val)
+
+/** @brief 
+ *
+ * @param size
+ * @return 
+ */
 #define create_list_params(size) (list_params_t*)malloc(sizeof(list_params_t) + size * sizeof(ums_wid_t))

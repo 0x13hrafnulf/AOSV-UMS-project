@@ -1,3 +1,31 @@
+/**
+ * Copyright (C) 2021 Bektur Umarbaev <hrafnulf13@gmail.com>
+ *
+ * This file is part of the User Mode thread Scheduling (UMS) library.
+ *
+ * UMS library is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * UMS library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with UMS library.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
+ * @brief Contains essential UMS library functions 
+ *
+ * @file ums_lib.c
+ * @author Bektur Umarbaev <hrafnulf13@gmail.com>
+ * @date 
+ */
+
 #define _GNU_SOURCE
 #include "ums_lib.h"
 
@@ -10,23 +38,39 @@
 #include <sched.h>
 #include <unistd.h>
 
-int ums_dev = -UMS_ERROR;
+///
+int ums_dev = -UMS_ERROR;  
+
+///                                
 pthread_mutex_t ums_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+///
 ums_completion_list_t completion_lists = {
     .list = LIST_HEAD_INIT(completion_lists.list),
     .count = 0
 };
+
+///
 ums_worker_list_t workers = {
     .list = LIST_HEAD_INIT(workers.list),
     .count = 0
 };
+
+///
 ums_scheduler_list_t schedulers = {
     .list = LIST_HEAD_INIT(schedulers.list),
     .count = 0
 };
 
+///
 __thread ums_clid_t completion_list_id;
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int open_device()
 {
     pthread_mutex_lock(&ums_mutex);
@@ -43,6 +87,12 @@ int open_device()
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int close_device()
 {
     pthread_mutex_lock(&ums_mutex);
@@ -56,6 +106,12 @@ int close_device()
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_enter()
 {
     completion_list_id = -1;
@@ -75,6 +131,12 @@ int ums_enter()
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_exit()
 {
     printf("UMS_LIB: ums_exit() invoked.\n");
@@ -114,6 +176,12 @@ int ums_exit()
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_clid_t ums_create_completion_list() 
 {
     int ret = open_device();
@@ -143,6 +211,12 @@ ums_clid_t ums_create_completion_list()
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, void (*entry_point)(void *), void *args)
 {
     ums_worker_t *worker;
@@ -159,7 +233,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
 
     params->entry_point = (unsigned long)entry_point;
     params->function_args = (unsigned long)args;
-    params->stack_size = stack_size;
+    params->stack_size = stack_size < UMS_MIN_STACK_SIZE ? UMS_MIN_STACK_SIZE : stack_size;
     params->clid = clid;
 
     void *stack;
@@ -204,6 +278,12 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
 {
     list_params_t *list;
@@ -242,6 +322,12 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 void *ums_enter_scheduling_mode(void *args)
 {
     scheduler_params_t *params = (scheduler_params_t *)args;
@@ -278,6 +364,12 @@ void *ums_enter_scheduling_mode(void *args)
     pthread_exit(NULL);
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_exit_scheduling_mode()
 {
     int ret = open_device();
@@ -296,6 +388,12 @@ int ums_exit_scheduling_mode()
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_execute_thread(ums_wid_t wid) 
 {
     list_params_t *list;
@@ -343,6 +441,12 @@ int ums_execute_thread(ums_wid_t wid)
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_thread_yield(worker_status_t status) 
 {
     ums_completion_list_node_t *comp_list;
@@ -372,16 +476,34 @@ int ums_thread_yield(worker_status_t status)
     return ret;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_thread_pause()
 {
     return ums_thread_yield(PAUSE);
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int ums_thread_exit()
 {
     return ums_thread_yield(FINISH);
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 list_params_t *ums_dequeue_completion_list_items()
 {
     list_params_t *list;
@@ -452,6 +574,12 @@ list_params_t *ums_dequeue_completion_list_items()
     return list;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 {
     if(list->state == FINISHED)
@@ -476,6 +604,12 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     return list->workers[index];
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int cleanup()
 {
     if(!list_empty(&completion_lists.list))
@@ -518,6 +652,12 @@ int cleanup()
     return UMS_SUCCESS;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
 {
     ums_completion_list_node_t *comp_list;
@@ -539,6 +679,12 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
     return comp_list;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 int check_if_worker_exists(ums_wid_t wid)
 {
     if(!list_empty(&workers.list))
@@ -557,6 +703,12 @@ int check_if_worker_exists(ums_wid_t wid)
     return -UMS_ERROR_WORKER_NOT_FOUND;
 }
 
+/** @brief 
+ *.
+ *
+ *  @param 
+ *  @return 
+ */
 ums_scheduler_t *check_if_scheduler_exists()
 {
     ums_scheduler_t *scheduler;
@@ -578,11 +730,17 @@ ums_scheduler_t *check_if_scheduler_exists()
     return scheduler;
 }
 
+/** @brief 
+ *.
+ */
 __attribute__((constructor)) void start(void)
 {
 
 }
 
+/** @brief 
+ *.
+ */
 __attribute__((destructor)) void end(void)
 {
     cleanup();
