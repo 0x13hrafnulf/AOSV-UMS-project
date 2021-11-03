@@ -92,7 +92,7 @@ int delete_process_proc_entry(process_t *process);
  */
 typedef struct process_list {
     struct list_head list;          
-    unsigned int process_count;     /**< Number of processes  */
+    unsigned int process_count;     /**< Number of processes handled by the UMS kernel module*/
 } process_list_t;
 
 /** @brief Represents a node in the @ref process_list 
@@ -100,132 +100,132 @@ typedef struct process_list {
  *
  */
 typedef struct process {
-    pid_t pid;                              /**<  */
+    pid_t pid;                              /**< pid of the process or tgid of the process threads */
     struct list_head list;                  
-    state_t state;                          /**<  */
-    completion_list_t *completion_lists;    /**<  */
-    worker_list_t *worker_list;             /**<  */
-    scheduler_list_t *scheduler_list;       /**<  */
-    process_proc_entry_t *proc_entry;       /**<  */
+    state_t state;                          /**< State of the process */
+    completion_list_t *completion_lists;    /**< List of completions lists created by the process */
+    worker_list_t *worker_list;             /**< List of worker threads created by the process  */
+    scheduler_list_t *scheduler_list;       /**< List of schedulers created by the process  */
+    process_proc_entry_t *proc_entry;       /**< Proc entries of the process */
 } process_t;
 
-/** @brief 
+/** @brief The list of the completion lists created by the specific process
  *.
  *
  */
 typedef struct completion_list {
     struct list_head list;          
-    unsigned int list_count;        /**<  */
+    unsigned int list_count;        /**< Number of completion lists created by the process */
 } completion_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref completion_list
  *.
  *
  */
 typedef struct completion_list_node {
-    ums_clid_t clid;                /**<  */
+    ums_clid_t clid;                /**< Completion list ID */
     struct list_head list;          
-    unsigned int worker_count;      /**<  */
-    unsigned int finished_count;    /**<  */
-    worker_list_t *idle_list;       /**<  */
-    worker_list_t *busy_list;       /**<  */
+    unsigned int worker_count;      /**< Number of worker threads assigned to the completion list */
+    unsigned int finished_count;    /**< Number of worker threads that has completed their work */
+    worker_list_t *idle_list;       /**< List of worker threads that are ready and waiting to be scheduled */
+    worker_list_t *busy_list;       /**< List of worker threads that has been completed or currently running */
 } completion_list_node_t;
 
-/** @brief 
+/** @brief The list of the worker threads
  *.
  *
  */
 typedef struct worker_list {
     struct list_head list;          
-    unsigned int worker_count;      /**<  */
+    unsigned int worker_count;      /**< Number of worker threads created by the process */
 } worker_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref worker_list
  *.
  *
  */
 typedef struct worker {
-    ums_wid_t wid;                                      /**<  */
-    pid_t pid;                                          /**<  */
-    pid_t tid;                                          /**<  */
-    ums_sid_t sid;                                      /**<  */
-    ums_clid_t clid;                                    /**<  */
-    unsigned long entry_point;                          /**<  */
-    unsigned long stack_addr;                           /**<  */
-    struct pt_regs regs;                                /**<  */
-    struct fpu fpu_regs;                                /**<  */
-    struct list_head global_list;                       /**<  */
-    struct list_head local_list;                        /**<  */
-    state_t state;                                      /**<  */
-    worker_proc_entry_t *proc_entry;                    /**<  */
-    unsigned int switch_count;                          /**<  */
-    unsigned long total_exec_time;                      /**<  */
-    struct timespec64 time_of_the_last_switch;          /**<  */
+    ums_wid_t wid;                                      /**< Worker thread ID */
+    pid_t pid;                                          /**< pid of the process thread that is currently running the worker thread */
+    pid_t tid;                                          /**< pid of the process that created the worker thread */
+    ums_sid_t sid;                                      /**< ID of the scheduler which manages the current worker thread */
+    ums_clid_t clid;                                    /**< ID of the completion list where worker thread is assigned to */
+    unsigned long entry_point;                          /**< Function pointer and an entry point set by a user, that serves as a starting point of the worker thread  * */
+    unsigned long stack_addr;                           /**< Address of the stack allocated by the UMS library */
+    struct pt_regs regs;                                /**< Snapshot of CPU registers */
+    struct fpu fpu_regs;                                /**< Snapshot of FPU registers */
+    struct list_head global_list;                       /**< List of the worker threads created by the process */
+    struct list_head local_list;                        /**< List of the worker threads of the completion list */
+    state_t state;                                      /**< State of worker thread's progress */
+    worker_proc_entry_t *proc_entry;                    /**< Proc entry of the worker thread */
+    unsigned int switch_count;                          /**< Number of context switches */
+    unsigned long total_exec_time;                      /**< Total execution time of the worker thread */
+    struct timespec64 time_of_the_last_switch;          /**< Time when the last switch occured */
 } worker_t;
 
-/** @brief 
+/** @brief The list of the schedulers created by the specific process
  *.
  *
  */
 typedef struct scheduler_list {
     struct list_head list;              
-    unsigned int scheduler_count;       /**<  */
+    unsigned int scheduler_count;       /**< Number of schedulers created by the process */
 } scheduler_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref scheduler_list
  *.
  *
  */
 typedef struct scheduler {
-    ums_sid_t sid;                                              /**<  */
-    pid_t pid;                                                  /**<  */
-    pid_t tid;                                                  /**<  */
-    ums_wid_t wid;                                              /**<  */
-	unsigned long entry_point;                                  /**<  */
-    unsigned long return_addr;                                  /**<  */
-    unsigned long stack_ptr;                                    /**<  */
-    unsigned long base_ptr;                                     /**<  */
-    state_t state;                                              /**<  */
-    struct pt_regs regs;                                        /**<  */
-    struct fpu fpu_regs;                                        /**<  */
-    completion_list_node_t *comp_list;                          /**<  */
+    ums_sid_t sid;                                              /**< Scheduler ID */
+    pid_t pid;                                                  /**< pid of the process thread that is currently running the scheduler */
+    pid_t tid;                                                  /**< pid of the process that created the scheduler */
+    ums_wid_t wid;                                              /**< ID of the worker that is managed by the scheduler */
+	unsigned long entry_point;                                  /**< Function pointer and an entry point set by a user, that serves as a starting point of the scheduler. It is a scheduling function that determines the next thread to be scheduled */
+    unsigned long return_addr;                                  /**< Snapshot of the instruction pointer that is restored when exiting scheduling mode */
+    unsigned long stack_ptr;                                    /**< Snapshot of the stack pointer that is restored when exiting scheduling mode */
+    unsigned long base_ptr;                                     /**< Snapshot of the base pointer that is restored when exiting scheduling mode */
+    state_t state;                                              /**< State of the scheduler */
+    struct pt_regs regs;                                        /**< Snapshot of CPU registers */
+    struct fpu fpu_regs;                                        /**< Snapshot of FPU registers */
+    completion_list_node_t *comp_list;                          /**< Pointer of the completion list that is associated with the scheduler */
     struct list_head list;                                      
-    scheduler_proc_entry_t *proc_entry;                         /**<  */
-    unsigned int switch_count;                                  /**<  */
-    unsigned long avg_switch_time;                              /**<  */
-    unsigned long avg_switch_time_full;                         /**<  */
-    unsigned long time_needed_for_the_last_switch;              /**<  */
-    unsigned long time_needed_for_the_last_switch_full;         /**<  */
-    struct timespec64 time_of_the_last_switch;                  /**<  */
-    struct timespec64 time_of_the_last_switch_full;             /**<  */
+    scheduler_proc_entry_t *proc_entry;                         /**< Proc entry of the scheduler */
+    unsigned int switch_count;                                  /**< Number of context switches */
+    unsigned long avg_switch_time;                              /**< Average time needed for context switch */
+    unsigned long avg_switch_time_full;                         /**< Average time needed for context switch, including the time for finding available worker thread */
+    unsigned long time_needed_for_the_last_switch;              /**< Time needed for the last context switch */
+    unsigned long time_needed_for_the_last_switch_full;         /**< Time needed for the last context switch, including the time for finding available worker thread */
+    struct timespec64 time_of_the_last_switch;                  /**< Time when the last switch occured */
+    struct timespec64 time_of_the_last_switch_full;             /**< Time when the last context switch, including the time for finding available worker thread */
 } scheduler_t;
 
-/** @brief 
+/** @brief Responsible for tracking proc_dir_entries of the process
  *.
  *
  */
 typedef struct process_proc_entry {
-	struct proc_dir_entry *pde;         /**<  */
-	struct proc_dir_entry *parent;      /**<  */
-	struct proc_dir_entry *child;       /**<  */
+	struct proc_dir_entry *pde;         /**< proc_dir_entry of the process (/proc/ums/<PID>/) */
+	struct proc_dir_entry *parent;      /**< Parent folder of the process' folder (/proc/ums/) */
+	struct proc_dir_entry *child;       /**< Child folder of the process' folder (/proc/ums/<PID>/schedulers/) */
 } process_proc_entry_t;
 
-/** @brief 
+/** @brief Responsible for tracking proc_dir_entries of the schedulers of the specific process
  *.
  *
  */
 typedef struct scheduler_proc_entry {
-	struct proc_dir_entry *pde;     /**<  */                             
-	struct proc_dir_entry *parent;  /**<  */
-	struct proc_dir_entry *child;   /**<  */
-	struct proc_dir_entry *info;    /**<  */
+	struct proc_dir_entry *pde;     /**< proc_dir_entry of the scheduler of the specific process (/proc/ums/<PID>/schedulers/<Scheduler ID>/) */                             
+	struct proc_dir_entry *parent;  /**< Parent folder of the scheduler's folder (/proc/ums/<PID>/schedulers/) */
+	struct proc_dir_entry *child;   /**< Child folder of the scheduler's folder (/proc/ums/<PID>/schedulers/<Scheduler ID>/workers/) */
+	struct proc_dir_entry *info;    /**< File that contains information and statistics of the scheduler performance (/proc/ums/<PID>/schedulers/<Scheduler ID>/info) */
 } scheduler_proc_entry_t;
 
-/** @brief 
+/** @brief Responsible for tracking proc_dir_entries of the worker of the specific process
  *.
  *
  */
 typedef struct worker_proc_entry {
-	struct proc_dir_entry *pde;     /**<  */
-	struct proc_dir_entry *parent;  /**<  */
+	struct proc_dir_entry *pde;     /**< proc_dir_entry of the worker thread of the completion list that is assigned to a specific scheduler and contains information/statistics regarding worker thread's performance (/proc/ums/<PID>/schedulers/<Scheduler ID>/workers/<Worker ID>) */
+	struct proc_dir_entry *parent;  /**< Parent folder of the worker thread's file (/proc/ums/<PID>/schedulers/<Scheduler ID>/workers/) */
 } worker_proc_entry_t;

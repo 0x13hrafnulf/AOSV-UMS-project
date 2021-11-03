@@ -79,7 +79,7 @@
  */
 #define UMS_MIN_STACK_SIZE                                      4096
 
-/** @brief States of completion lists and threads (schedulers, worker threads)
+/** @brief States of processes, completion lists and threads (schedulers, worker threads)
  *.
  *  
  */

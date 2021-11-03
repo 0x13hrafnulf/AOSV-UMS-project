@@ -76,7 +76,7 @@
 #define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY               1014                                        ///<
 #define UMS_ERROR_FAILED_TO_PROC_OPEN                       1015                                        ///<
 
-/** @brief States of completion lists and threads (schedulers, worker threads)
+/** @brief States of processes, completion lists and threads (schedulers, worker threads)
  *.
  *  
  */
