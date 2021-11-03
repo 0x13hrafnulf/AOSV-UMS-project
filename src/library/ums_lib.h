@@ -63,84 +63,67 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
 int check_if_worker_exists(ums_wid_t wid);
 ums_scheduler_t *check_if_scheduler_exists();
 
-/** @brief 
+/** @brief The list of the completion lists created by the process
  *.
  *
  */
 typedef struct ums_completion_list {
-    struct list_head list;                          /**<  */
-    unsigned int count;                             /**<  */
+    struct list_head list;                          
+    unsigned int count;                             /**< Number of completion lists created */
 } ums_completion_list_t;
 
-/** @brief 
+/** @brief  Represents a node in the @ref ums_completion_list 
  *.
  *
  */
 typedef struct ums_completion_list_node {
-    ums_clid_t clid;                                /**<  */
-    unsigned int worker_count;                      /**<  */
-    unsigned int usage;                             /**<  */
-    pthread_cond_t update;                          /**<  */
-    pthread_mutex_t mutex;                          /**<  */
-    struct list_head list;                          /**<  */
-    list_params_t *list_params;                     /**<  */
+    ums_clid_t clid;                                /**< Completion list ID */
+    unsigned int worker_count;                      /**< Number of worker threads assigned to the completion list */
+    unsigned int usage;                             /**< Number of schedulers currently using the completion list (required for shared resource update) */
+    pthread_cond_t update;                          /**< Conditional variable that is signaled when the completion list is updated, while schedulers wait for an update */
+    pthread_mutex_t mutex;                          /**< Mutex for the completion list, since it can be shared by the multiple schedulers */
+    struct list_head list;                          
+    list_params_t *list_params;                     /**< Parameters that are created by the scheduler and passed to dequeue the completion list items @ref list_params */
 } ums_completion_list_node_t;
 
-/** @brief 
+/** @brief The list of the worker threads created by the process
  *.
  *
  */
 typedef struct ums_worker_list {
-    struct list_head list;                          /**<  */
-    unsigned int count;                             /**<  */
+    struct list_head list;                          
+    unsigned int count;                             /**< Number of worker threads created */
 } ums_worker_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref ums_worker_list 
  *.
  *
  */
 typedef struct ums_worker {
-    ums_wid_t wid;                                  /**<  */
-    struct list_head list;                          /**<  */
-    worker_params_t *worker_params;                 /**<  */
+    ums_wid_t wid;                                  /**< Worker thread ID */
+    struct list_head list;                          
+    worker_params_t *worker_params;                 /**< Parameters that are passed in order to create a worker thread @ref worker_params */
 } ums_worker_t;
 
-/** @brief 
+/** @brief The list of the schedulers created by the process
  *.
  *
  */
 typedef struct ums_scheduler_list {
-    struct list_head list;                          /**<  */
-    unsigned int count;                             /**<  */
+    struct list_head list;                          
+    unsigned int count;                             /**< Number of scheduler created */
 } ums_scheduler_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref ums_scheduler_list 
  *.
  *
  */
 typedef struct ums_scheduler {
-    struct list_head list;                          /**<  */
-    pthread_t tid;                                  /**<  */
-    scheduler_params_t *sched_params;               /**<  */
+    struct list_head list;                          
+    pthread_t tid;                                  /**< Pthread ID */
+    scheduler_params_t *sched_params;               /**< Parameters that are passed in order to create a scheduler @ref scheduler_params */
 } ums_scheduler_t;
 
-/** @brief 
- *
- * @param type
- * @return 
- */
 #define init(type) (type*)malloc(sizeof(type))
-
-/** @brief 
- *
- * @param val
- * @return 
- */
 #define delete(val) free(val)
-
-/** @brief 
- *
- * @param size
- * @return 
- */
 #define create_list_params(size) (list_params_t*)malloc(sizeof(list_params_t) + size * sizeof(ums_wid_t))

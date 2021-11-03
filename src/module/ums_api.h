@@ -86,22 +86,22 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler);
 int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker);
 int delete_process_proc_entry(process_t *process);
 
-/** @brief 
+/** @brief The list of the processes handled by the UMS kernel module
  *.
  *
  */
 typedef struct process_list {
-    struct list_head list;          /**<  */
-    unsigned int process_count;     /**<  */
+    struct list_head list;          
+    unsigned int process_count;     /**< Number of processes  */
 } process_list_t;
 
-/** @brief 
+/** @brief Represents a node in the @ref process_list 
  *.
  *
  */
 typedef struct process {
     pid_t pid;                              /**<  */
-    struct list_head list;                  /**<  */
+    struct list_head list;                  
     state_t state;                          /**<  */
     completion_list_t *completion_lists;    /**<  */
     worker_list_t *worker_list;             /**<  */
@@ -114,7 +114,7 @@ typedef struct process {
  *
  */
 typedef struct completion_list {
-    struct list_head list;          /**<  */
+    struct list_head list;          
     unsigned int list_count;        /**<  */
 } completion_list_t;
 
@@ -124,7 +124,7 @@ typedef struct completion_list {
  */
 typedef struct completion_list_node {
     ums_clid_t clid;                /**<  */
-    struct list_head list;          /**<  */
+    struct list_head list;          
     unsigned int worker_count;      /**<  */
     unsigned int finished_count;    /**<  */
     worker_list_t *idle_list;       /**<  */
@@ -136,7 +136,7 @@ typedef struct completion_list_node {
  *
  */
 typedef struct worker_list {
-    struct list_head list;          /**<  */
+    struct list_head list;          
     unsigned int worker_count;      /**<  */
 } worker_list_t;
 
@@ -168,7 +168,7 @@ typedef struct worker {
  *
  */
 typedef struct scheduler_list {
-    struct list_head list;              /**<  */
+    struct list_head list;              
     unsigned int scheduler_count;       /**<  */
 } scheduler_list_t;
 
@@ -189,7 +189,7 @@ typedef struct scheduler {
     struct pt_regs regs;                                        /**<  */
     struct fpu fpu_regs;                                        /**<  */
     completion_list_node_t *comp_list;                          /**<  */
-    struct list_head list;                                      /**<  */
+    struct list_head list;                                      
     scheduler_proc_entry_t *proc_entry;                         /**<  */
     unsigned int switch_count;                                  /**<  */
     unsigned long avg_switch_time;                              /**<  */
