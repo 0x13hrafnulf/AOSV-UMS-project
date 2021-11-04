@@ -311,9 +311,12 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     list_add_tail(&(scheduler->list), &schedulers.list);
     schedulers.count++;
 
-    list = create_list_params(comp_list->worker_count);
-    comp_list->list_params = list;
-    list->size = comp_list->worker_count;
+    if(comp_list->list_params == NULL)
+    {
+        list = create_list_params(comp_list->worker_count);
+        comp_list->list_params = list;
+        list->size = comp_list->worker_count;
+    }
 
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *)scheduler->sched_params);
     if(ret < 0)
@@ -393,10 +396,11 @@ int ums_exit_scheduling_mode()
     return ret;
 }
 
-/** @brief 
+/** @brief Called by a scheduler to request UMS kernel module to execute a worker thread with specific ID
  *.
- *
- *  @param 
+ *  
+ *  
+ *  @param wid ID of the worker thread that to be executed
  *  @return 
  */
 int ums_execute_thread(ums_wid_t wid) 
@@ -418,16 +422,18 @@ int ums_execute_thread(ums_wid_t wid)
     }
 
     list = comp_list->list_params;
-
-    int index = 0;
-    while(index < list->size && list->workers[index] != wid)
+    if(list != NULL)
     {
-        ++index;
+        int index = 0;
+        while(index < list->size && list->workers[index] != wid)
+        {
+            ++index;
+        }
+        comp_list->usage++;
+        list->workers[index] = -1;
+        list->worker_count--;
+        printf("UMS_LIB_LIST: count %d, wid %d, index %d\n", list->worker_count, wid, index);
     }
-    comp_list->usage++;
-    list->workers[index] = -1;
-    list->worker_count--;
-    printf("UMS_LIB_LIST: count %d, wid %d, index %d\n", list->worker_count, wid, index);
 
     int ret = open_device();
     if(ret < 0)
@@ -446,10 +452,13 @@ int ums_execute_thread(ums_wid_t wid)
     return ret;
 }
 
-/** @brief 
+/** @brief Called by a worker thread to pause or complete the execution
  *.
- *
- *  @param 
+ *  Depending on the value of the argument, the function will:
+ *   - Remove the worker thread from the list of worker threads that can be scheduled, thus completes the execution; 
+ *   - Push it back to the list of available worker thread, thus pauses its' execution and can be rescheduled later.
+ *  
+ *  @param status defines the status of the execution flow of the worker thread (passing PAUSE will pause the execution, when FINISH will complete it)
  *  @return 
  */
 int ums_thread_yield(worker_status_t status) 
@@ -481,10 +490,10 @@ int ums_thread_yield(worker_status_t status)
     return ret;
 }
 
-/** @brief 
+/** @brief Called by a worker thread to pause the execution
  *.
+ *  Wrapper that calls @ref ums_thread_yield() with an argument @c PAUSE
  *
- *  @param 
  *  @return 
  */
 int ums_thread_pause()
@@ -492,10 +501,10 @@ int ums_thread_pause()
     return ums_thread_yield(PAUSE);
 }
 
-/** @brief 
+/** @brief Called by a worker thread to complete the execution
  *.
- *
- *  @param 
+ *  Wrapper that calls @ref ums_thread_yield() with an argument @c FINISH
+ * 
  *  @return 
  */
 int ums_thread_exit()
@@ -503,11 +512,14 @@ int ums_thread_exit()
     return ums_thread_yield(FINISH);
 }
 
-/** @brief 
+/** @brief Called by a scheduler to request UMS kernel module to provide a list of available worker threads that can be scheduled
  *.
- *
- *  @param 
- *  @return 
+ *  The function passes a global @ref list_params from the @ref ums_completion_list_node structure to the UMS kernel module
+ *  The kernel module populates the structure with the list of available workers and sets the number of those available workers.
+ *  The function utilizes pthreads conditional and mutex variables to protect the shared @ref list_params.
+ *  Therefore only one scheduler (usually the scheduler that is running the last available worker thread) can update the structure from the kernel module, while others wait in the blocked state for the signal from the conditional variable. 
+ * 
+ *  @return returns the pointer to a shared @ref list_params structure which contains an array of available workers that can be scheduled
  */
 list_params_t *ums_dequeue_completion_list_items()
 {
@@ -524,10 +536,9 @@ list_params_t *ums_dequeue_completion_list_items()
     int ret;
     list = comp_list->list_params;
     
-
+    pthread_mutex_lock(&comp_list->mutex);
     if(list->worker_count == 0 && list->state != FINISHED)
-    {
-        pthread_mutex_lock(&comp_list->mutex);
+    { 
         if(comp_list->usage > 0)
         {
             printf("Waiting for signal %ld\n", pthread_self());
@@ -579,11 +590,13 @@ list_params_t *ums_dequeue_completion_list_items()
     return list;
 }
 
-/** @brief 
+/** @brief Called by a scheduler, after performing @ref ums_dequeue_completion_list_items(), to find a next available worker thread from the completion list
  *.
- *
- *  @param 
- *  @return 
+ *  This function always has to be run after calling @ref ums_dequeue_completion_list_items(), since it will populate the list in the correct way to be processed 
+ *  Passing a manually created list parameter will result in undefined behaviour
+ *  
+ *  @param list List parameter that is created after @ref ums_dequeue_completion_list_items() call and contains the list of available workers 
+ *  @return returns a next available worker thread that can be scheduled, or error values otherwise
  */
 ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 {
@@ -609,11 +622,9 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     return list->workers[index];
 }
 
-/** @brief 
+/** @brief Performs a cleanup by deleting all the data structures allocated by the library
  *.
- *
- *  @param 
- *  @return 
+ *  
  */
 int cleanup()
 {
@@ -657,11 +668,11 @@ int cleanup()
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Checks if the completion list with a passed ID exists or not
  *.
  *
- *  @param 
- *  @return 
+ *  @param clid Completion list ID
+ *  @return returns a pointer to the existing completion list structure if it exists, NULL otherwise
  */
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
 {
@@ -684,11 +695,11 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
     return comp_list;
 }
 
-/** @brief 
+/** @brief Checks if the worker thread with a passed ID exists or not
  *.
  *
- *  @param 
- *  @return 
+ *  @param wid Worker thread ID
+ *  @return returns a @ref UMS_SUCCESS if worker thread exists, - @ref UMS_ERROR_WORKER_NOT_FOUND otherwise
  */
 int check_if_worker_exists(ums_wid_t wid)
 {
@@ -708,11 +719,10 @@ int check_if_worker_exists(ums_wid_t wid)
     return -UMS_ERROR_WORKER_NOT_FOUND;
 }
 
-/** @brief 
+/** @brief Checks if the scheduler for the current pthread exists or not
  *.
  *
- *  @param 
- *  @return 
+ *  @return returns a pointer to the existing scheduler structure if it exists, NULL otherwise
  */
 ums_scheduler_t *check_if_scheduler_exists()
 {
