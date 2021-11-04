@@ -217,7 +217,7 @@ ums_wid_t create_worker_thread(worker_params_t *params)
 
     if(comp_list->state == RUNNING)
     {
-        return -UMS_ERROR_COMPLETION_LIST_IS_RUNNING_AND_CANNOT_BE_MODIFIED;
+        return -UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED;
     }
 
     worker = kmalloc(sizeof(worker_t), GFP_KERNEL);
