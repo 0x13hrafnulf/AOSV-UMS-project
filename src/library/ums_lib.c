@@ -536,9 +536,10 @@ list_params_t *ums_dequeue_completion_list_items()
     int ret;
     list = comp_list->list_params;
     
-    pthread_mutex_lock(&comp_list->mutex);
+   
     if(list->worker_count == 0 && list->state != FINISHED)
     { 
+        pthread_mutex_lock(&comp_list->mutex);
         if(comp_list->usage > 0)
         {
             printf("Waiting for signal %ld\n", pthread_self());
