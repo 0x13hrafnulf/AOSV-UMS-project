@@ -72,7 +72,7 @@
 #define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED                      1013                                        ///<
 #define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY                           1014                                        ///<
 #define UMS_ERROR_FAILED_TO_PROC_OPEN                                   1015                                        ///<
-#define UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED        1016
+#define UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED        1016                                        ///<
 
 /** @brief The minimum stack size of the worker thread
  *.
