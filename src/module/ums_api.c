@@ -215,6 +215,11 @@ ums_wid_t create_worker_thread(worker_params_t *params)
         return -UMS_ERROR_COMPLETION_LIST_NOT_FOUND;
     }
 
+    if(comp_list->state == RUNNING)
+    {
+        return -UMS_ERROR_COMPLETION_LIST_IS_RUNNING_AND_CANNOT_BE_MODIFIED;
+    }
+
     worker = kmalloc(sizeof(worker_t), GFP_KERNEL);
     list_add_tail(&(worker->global_list), &process->worker_list->list);
 
@@ -309,6 +314,7 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->base_ptr = scheduler->regs.bp;
     scheduler->regs.ip = kern_params.entry_point;
     process->scheduler_list->scheduler_count++;
+    comp_list->state = RUNNING;
 
     ret = create_scheduler_proc_entry(process, scheduler);
     if(ret != 0)

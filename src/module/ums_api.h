@@ -127,6 +127,7 @@ typedef struct completion_list_node {
     struct list_head list;          
     unsigned int worker_count;      /**< Number of worker threads assigned to the completion list */
     unsigned int finished_count;    /**< Number of worker threads that has completed their work */
+    state_t state;                  /**< State of the completion list */
     worker_list_t *idle_list;       /**< List of worker threads that are ready and waiting to be scheduled */
     worker_list_t *busy_list;       /**< List of worker threads that has been completed or currently running */
 } completion_list_node_t;

@@ -64,7 +64,7 @@ static struct miscdevice dev_ums = {
  *  @param file
  *  @param cmd command number
  *  @param arg pointer to arguments, if any
- *  @return 
+ *  @return can return @ref UMS_SUCCESS, IDs of the completion lists, worker threads, schedulers depending on the syscall or error value in case of the failure 
  */
 static long ioctl_ums(struct file *file, unsigned int cmd, unsigned long arg)
 {

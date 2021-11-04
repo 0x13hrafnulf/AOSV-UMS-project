@@ -58,11 +58,11 @@ ums_scheduler_list_t schedulers = {
 };
 __thread ums_clid_t completion_list_id;
 
-/** @brief 
+/** @brief Opens UMS device
  *.
+ * Uses mutex to protect a shared resource from simultaneous access by multiple threads
  *
- *  @param 
- *  @return 
+ *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
  */
 int open_device()
 {
@@ -80,11 +80,11 @@ int open_device()
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Closes UMS device
  *.
+ * Uses mutex to protect a shared resource from simultaneous access by multiple threads
  *
- *  @param 
- *  @return 
+ *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
  */
 int close_device()
 {
@@ -93,17 +93,18 @@ int close_device()
     if(ums_dev < 0) 
     {
         printf("Error: close_device() => Error# = %d\n", errno);
+        pthread_mutex_unlock(&ums_mutex);
         return -UMS_ERROR;
     }
     pthread_mutex_unlock(&ums_mutex);
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Requests UMS kernel module to manage current process
  *.
+ * 
  *
- *  @param 
- *  @return 
+ *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
  */
 int ums_enter()
 {
@@ -124,11 +125,11 @@ int ums_enter()
     return ret;
 }
 
-/** @brief 
+/** @brief Requests UMS kernel module to finish management of the current process
  *.
  *
- *  @param 
- *  @return 
+ *  
+ *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
  */
 int ums_exit()
 {
@@ -152,7 +153,7 @@ int ums_exit()
     if(ret < 0)
     {
         printf("Error: ums_exit() => UMS_DEVICE => Error# = %d\n", errno);
-        return -UMS_ERROR;
+        goto out;
     }
 
     ret = ioctl(ums_dev, UMS_EXIT);
@@ -169,11 +170,11 @@ int ums_exit()
     return ret;
 }
 
-/** @brief 
+/** @brief Requests UMS kernel module to create a completion lists
  *.
  *
- *  @param 
- *  @return 
+ *  
+ *  @return return Completion list ID
  */
 ums_clid_t ums_create_completion_list() 
 {
@@ -204,11 +205,15 @@ ums_clid_t ums_create_completion_list()
     return ret;
 }
 
-/** @brief 
+/** @brief Requests UMS kernel module to create a worker thread assigned to specific comletion list
  *.
+ *  Library requests UMS kernel module to create a worker thread by passing @ref worker_params
  *
- *  @param 
- *  @return 
+ *  @param clid ID of the completion list where worker thread is assigned to
+ *  @param stack_size Stack size of the worker thread set by a user
+ *  @param entry_point Function pointer and an entry point set by a user, that serves as a starting point of the worker thread
+ *  @param args Pointer of the function arguments that are passed to the entry point/function 
+ *  @return returns Worker ID
  */
 ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, void (*entry_point)(void *), void *args)
 {
@@ -271,11 +276,17 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     return ret;
 }
 
-/** @brief 
+/** @brief Wrapper function that creates pthreds which eventually request UMS kernel module to create a scheduler
  *.
- *
- *  @param 
- *  @return 
+ *  UMS library uses pthread library to create process threads that will become scheduler threads.
+ *  Each pthread jumps to @ref ums_enter_scheduling_mode() function and requests UMS kernel module to create a scheduler by passing @ref scheduler_params.
+ *  After succesful creation of the scheduler by the UMS kernel module, created pthread becomes scheduler.
+ *  It starts scheduler work by jumping to the entry point assigned by a user and stays there until @ref ums_exit_scheduling_mode() is called.
+ *  Here @ref list_params is also created for the future calls of @ref ums_dequeue_completion_list_items() by a scheduler (since in this stage the completion list has been fully populated and cannot be modified later). 
+ *  
+ *  @param clid ID of the completion list that is assigned to the scheduler
+ *  @param entry_point Function pointer and an entry point set by a user, that serves as a starting point of the scheduler. It is a scheduling function that determines the next thread to be scheduled
+ *  @return Scheduler ID
  */
 ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
 {
@@ -315,10 +326,11 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     return ret;
 }
 
-/** @brief 
+/** @brief Actual function that is called by a pthread to request the UMS kernel module in order create a scheduler and assign a completion list to it
  *.
- *
- *  @param 
+ *  Additionally assigns a CPU core on which the scheduler will operate based on available cores
+ *  
+ *  @param args Pointer to @ref scheduler_params that is passed in order to create a scheduler
  *  @return 
  */
 void *ums_enter_scheduling_mode(void *args)
@@ -357,10 +369,10 @@ void *ums_enter_scheduling_mode(void *args)
     pthread_exit(NULL);
 }
 
-/** @brief 
+/** @brief Called by a scheduler to signal the UMS kernel module about the completion of scheduling mode
  *.
- *
- *  @param 
+ *  Restores instruction, stack and base pointers to return back to @ref ums_enter_scheduling_mode() function to perform pthread_exit()
+ * 
  *  @return 
  */
 int ums_exit_scheduling_mode()
