@@ -43,11 +43,13 @@ static int worker_proc_open(struct inode *inode, struct file *file);
 static int scheduler_proc_show(struct seq_file *m, void *p);
 static int worker_proc_show(struct seq_file *m, void *p);
 
-/** @brief 
+/** @brief Called by a process to request a scheduling management
  *.
- *
- *  @param 
- *  @return 
+ *  Checks if the process is already managed or not, if not:
+ *   - Creates a @ref process data structure by calling @ref create_process_node()
+ *   - Creates the proc entries by calling @ref create_process_proc_entry()
+ *   
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int enter_ums(void)
 {
@@ -73,11 +75,12 @@ int enter_ums(void)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Called by a process to request a completion of the scheduling management
  *.
- *
- *  @param 
- *  @return 
+ *  Checks if the process is already managed or not, if not:
+ *   - Sets the @ref state of the process to @c FINISHED, but does not delete related data structures of the process (which are deleted when UMS kernel module exits)
+ *   
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int exit_ums(void)
 {
@@ -97,11 +100,19 @@ int exit_ums(void)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Creates a @ref process data structure for the specified process
+ *.
+ *  To create a @ref process data structure, UMS kernel module:
+ *   - Allocates and initializes @ref process:
+ *      - process::pid is set to @p pid
+ *      - process::state is set to RUNNING
+ *      - Allocates and initializes @ref completion_list member of the @ref process to track completion lists created by the process
+ *      - Allocates and initializes @ref worker_list  member of the @ref process to track worker threads created by the process
+ *      - Allocates and initializes @ref scheduler_list  member of the @ref process to track schedulers created by the process
  *.
  *
- *  @param 
- *  @return 
+ *  @param pid pid of the process
+ *  @return returns a pointer to @ref process data structure of the specified process
  */
 process_t *create_process_node(pid_t pid)
 {
@@ -111,7 +122,8 @@ process_t *create_process_node(pid_t pid)
     list_add_tail(&process->list, &process_list.list);
 
     process_list.process_count++;
-    process->pid = current->pid;
+    process->pid = pid;
+    process->state = RUNNING;
 
     completion_list_t *comp_lists;
     comp_lists = kmalloc(sizeof(completion_list_t), GFP_KERNEL);
@@ -136,11 +148,20 @@ process_t *create_process_node(pid_t pid)
     return process;
 }
 
-/** @brief 
+/** @brief Creates a @ref completion_list_node data structure for the process
  *.
- *
- *  @param 
- *  @return 
+ *  To create a @ref completion_list_node data structure, UMS kernel module:
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Allocates and initializes @ref completion_list_node:
+ *      - Adds the completion list to the list of completion lists created by the process
+ *      - completion_list_node::clid is set to process::completion_lists::list_count value (which is incremented after)
+ *      - completion_list_node::worker_count is set to 0
+ *      - completion_list_node::finished_count is set to 0
+ *      - completion_list_node::state is set to IDLE
+ *      - Allocates and initializes @ref idle_list member of the @ref process to track completion lists created by the process
+ *      - Allocates and initializes @ref busy_list  member of the @ref process to track worker threads created by the process
+ *  
+ *  @return returns Completion list ID
  */
 ums_clid_t create_completion_list()
 {
@@ -163,6 +184,7 @@ ums_clid_t create_completion_list()
     process->completion_lists->list_count++;
     comp_list->worker_count = 0;
     comp_list->finished_count = 0;
+    comp_list->state = IDLE;
     
     worker_list_t *idle_list;
     idle_list = kmalloc(sizeof(worker_list_t), GFP_KERNEL);
@@ -180,11 +202,22 @@ ums_clid_t create_completion_list()
     return list_id;
 }
 
-/** @brief 
+/** @brief Creates a @ref worker data structure for the process
  *.
- *
- *  @param 
- *  @return 
+ *  To create a @ref worker data structure, UMS kernel module:
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if completion list exists based on the passed parameters @p params, if not returns @ref UMS_ERROR_COMPLETION_LIST_NOT_FOUND
+ *   - Allocates and initializes @ref worker:
+ *      - Adds the worker to the list of workers created by the process
+ *      - worker::wid is set to 
+ *      - 
+ *      - 
+ *      - 
+ *      - 
+ *      - 
+ * 
+ *  @param params pointer to @ref worker_params
+ *  @return returns Worker ID
  */
 ums_wid_t create_worker_thread(worker_params_t *params)
 {

@@ -174,7 +174,7 @@ int ums_exit()
  *.
  *
  *  
- *  @return return Completion list ID
+ *  @return returns Completion list ID
  */
 ums_clid_t ums_create_completion_list() 
 {
@@ -244,8 +244,8 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
     }
 
     params->stack_addr = (unsigned long)stack + stack_size;
-    //((unsigned long *)params->stack_addr)[0] = (unsigned long)&ums_thread_exit;
-    //params->stack_addr -= 8;
+    ((unsigned long *)params->stack_addr)[0] = (unsigned long)&ums_thread_exit;
+    params->stack_addr -= 8;
 
     ret = open_device();
     if(ret < 0)
@@ -286,7 +286,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
  *  
  *  @param clid ID of the completion list that is assigned to the scheduler
  *  @param entry_point Function pointer and an entry point set by a user, that serves as a starting point of the scheduler. It is a scheduling function that determines the next thread to be scheduled
- *  @return Scheduler ID
+ *  @return returns Scheduler ID
  */
 ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
 {
@@ -649,6 +649,7 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_LIB: Worker thread:%d  was deleted.\n", temp->wid);
+            temp->worker_params->stack_addr += 8;
             if(temp->worker_params->stack_addr != NULL) delete((void*)(temp->worker_params->stack_addr - temp->worker_params->stack_size));
             if(temp->worker_params != NULL) delete(temp->worker_params);
             delete(temp);
