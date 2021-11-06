@@ -100,7 +100,7 @@ int exit_ums(void)
     return UMS_SUCCESS;
 }
 
-/** @brief Creates a @ref process data structure for the specified process
+/** @brief Creates a @ref process data structure to handle the specified process
  *.
  *  To create a @ref process data structure, UMS kernel module:
  *   - Allocates and initializes @ref process:
@@ -148,9 +148,9 @@ process_t *create_process_node(pid_t pid)
     return process;
 }
 
-/** @brief Creates a @ref completion_list_node data structure for the process
+/** @brief Creates a @ref completion_list_node for the process
  *.
- *  To create a @ref completion_list_node data structure, UMS kernel module:
+ *  To create a @ref completion_list_node, UMS kernel module:
  *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
  *   - Allocates and initializes @ref completion_list_node:
  *      - Adds the completion list to the list of completion lists created by the process
@@ -158,10 +158,10 @@ process_t *create_process_node(pid_t pid)
  *      - completion_list_node::worker_count is set to 0
  *      - completion_list_node::finished_count is set to 0
  *      - completion_list_node::state is set to IDLE
- *      - Allocates and initializes @ref idle_list member of the @ref process to track completion lists created by the process
- *      - Allocates and initializes @ref busy_list  member of the @ref process to track worker threads created by the process
+ *      - Allocates and initializes @ref idle_list member of the @ref process to track idle worker threads created by the process
+ *      - Allocates and initializes @ref busy_list  member of the @ref process to track finished and running worker threads created by the process
  *  
- *  @return returns Completion list ID
+ *  @return returns completion list ID
  */
 ums_clid_t create_completion_list()
 {
@@ -202,22 +202,33 @@ ums_clid_t create_completion_list()
     return list_id;
 }
 
-/** @brief Creates a @ref worker data structure for the process
+/** @brief Creates a @ref worker thread for the process
  *.
- *  To create a @ref worker data structure, UMS kernel module:
+ *  To create a @ref worker, UMS kernel module:
  *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
  *   - Checks if completion list exists based on the passed parameters @p params, if not returns @ref UMS_ERROR_COMPLETION_LIST_NOT_FOUND
+ *   - Checks if completion list is used currently, thus cannot be modified and returns @ref UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED
  *   - Allocates and initializes @ref worker:
  *      - Adds the worker to the list of workers created by the process
- *      - worker::wid is set to 
- *      - 
- *      - 
- *      - 
- *      - 
- *      - 
+ *      - worker::wid is set to process::worker_list::worker_count value (which is incremented after)
+ *      - worker::pid is set to -1
+ *      - worker::tid is set to @c current->tgid
+ *      - worker::clid is set to worker_params::clid
+ *      - worker::state is set to IDLE
+ *      - worker::entry_point is set to worker_params::entry_point
+ *      - worker::stack_addr is set to worker_params::stack_addr
+ *      - worker::switch_count is set to 0;
+ *      - worker::total_exec_time is set to 0;
+ *      - worker::regs is a @c pt_regs data structure and set to a snapshot of current CPU registers of the process
+ *          - regs::ip is set to worker_params::entry_point
+ *          - regs::di is set to worker_params::function_args
+ *          - regs::sp is set to worker_params::stack_addr
+ *          - regs::bp is set to worker_params::stack_addr
+ *      - worker::fpu_regs is a @c fpu data structure and set to a snapshot of current FPU registers of the process
+ *      - Adds worker to the idle list of the completion list
  * 
  *  @param params pointer to @ref worker_params
- *  @return returns Worker ID
+ *  @return returns worker ID
  */
 ums_wid_t create_worker_thread(worker_params_t *params)
 {
@@ -264,6 +275,8 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     worker->state = IDLE;
     worker->entry_point = kern_params.entry_point;
     worker->stack_addr = kern_params.stack_addr;
+    worker->switch_count = 0;
+    worker->total_exec_time = 0;
 
     memcpy(&worker->regs, task_pt_regs(current), sizeof(struct pt_regs));
     memset(&worker->fpu_regs, 0, sizeof(struct fpu));
@@ -283,11 +296,36 @@ ums_wid_t create_worker_thread(worker_params_t *params)
     return worker_id;
 }
 
-/** @brief 
- *.
+/** @brief Converts a pthread to the @ref scheduler
  *
- *  @param 
- *  @return 
+ *  To create a @ref scheduler, UMS kernel module:
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if completion list exists based on the passed parameters @p params, if not returns @ref UMS_ERROR_COMPLETION_LIST_NOT_FOUND
+ *   - Allocates and initializes @ref scheduler:
+ *      - Adds the scheduler to the list of schedulers created by the process
+ *      - scheduler::sid is set to process::scheduler_list::scheduler_count; value (which is incremented after)
+ *      - scheduler::pid is set to @c current->pid
+ *      - scheduler::tid is set to @c current->tgid
+ *      - scheduler::wid is set to -1
+ *      - scheduler::state is set to IDLE
+ *      - scheduler::entry_point is set to scheduler_params::entry_point
+ *      - scheduler::avg_switch_time is set to 0;
+ *      - scheduler::avg_switch_time_full is set to 0;
+ *      - scheduler::time_needed_for_the_last_switch is set to 0;
+ *      - scheduler::time_needed_for_the_last_switch_full is set to 0;
+ *      - scheduler::comp_list is set to the pointer of the completion list retrieved using @ref check_if_completion_list_exists by passing scheduler_params::clid
+ *      - scheduler::regs is a @c pt_regs data structure and set to a snapshot of current CPU registers of the pthread
+ *          - scheduler::return_addr is set to regs::ip
+ *          - scheduler::stack_ptr is set to regs::bp
+ *          - scheduler::scheduler is set to regs::sp
+ *          - regs::ip is set to scheduler_params::entry_point
+ *      - scheduler::fpu_regs is a @c fpu data structure and set to a snapshot of current FPU registers of the pthread
+ *      - Sets the state of the completion list assigned to that scheduler to RUNNING, since the scheduling starts after the completion of ioctl call
+ *      - Creates @ref scheduler_proc_entry for the scheduler by calling @ref create_scheduler_proc_entry()
+ *      - Performs a context switch by copying previosly saved and modified scheduler::regs data structure to @c task_pt_regs(current)
+ *      
+ *  @param params pointer to @ref scheduler_params
+ *  @return returns scheduler ID
  */
 ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
 {
@@ -328,6 +366,11 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->state = IDLE;
     scheduler->entry_point = kern_params.entry_point;
     scheduler->comp_list = comp_list;
+    scheduler->switch_count = 0;
+    scheduler->avg_switch_time = 0;
+    scheduler->avg_switch_time_full = 0;
+    scheduler->time_needed_for_the_last_switch = 0;
+    scheduler->time_needed_for_the_last_switch_full = 0;
     scheduler_id = scheduler->sid;
 
     kern_params.sid = scheduler_id;
@@ -611,11 +654,11 @@ int dequeue_completion_list_items(list_params_t *params)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Checks if @p process with @p pid is managed by the UMS kernel module
  *.
- *
- *  @param 
- *  @return 
+ * 
+ *  @param pid pid of the process
+ *  @return returns pointer to @ref process, or @c NULL if no process was found
  */
 process_t *check_if_process_exists(pid_t pid)
 {
@@ -638,11 +681,12 @@ process_t *check_if_process_exists(pid_t pid)
     return process;
 }
 
-/** @brief 
+/** @brief Checks if completion list with @p clid was created by a @p process
  *.
- *
- *  @param 
- *  @return 
+ * 
+ *  @param process pointer to @ref process
+ *  @param clid Completion list ID
+ *  @return returns pointer to @ref completion_list_node, or @c NULL if no completion list was found
  */
 completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_clid_t clid)
 {
@@ -665,11 +709,12 @@ completion_list_node_t *check_if_completion_list_exists(process_t *process, ums_
     return comp_list;
 }
 
-/** @brief 
+/** @brief Checks if scheduler with @p sid was created by a @p process
  *.
- *
- *  @param 
- *  @return 
+ * 
+ *  @param process pointer to @ref process
+ *  @param sid Scheduler ID
+ *  @return returns pointer to @ref scheduler, or @c NULL if no scheduler was found
  */
 scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
 {
@@ -692,11 +737,12 @@ scheduler_t *check_if_scheduler_exists(process_t *process, ums_sid_t sid)
     return scheduler;
 }
 
-/** @brief 
+/** @brief Checks if scheduler with @p pid was created by a @p process
  *.
- *
- *  @param 
- *  @return 
+ * 
+ *  @param process pointer to @ref process
+ *  @param pid pid of the pthread which is associated with scheduler
+ *  @return returns pointer to @ref scheduler, or @c NULL if no scheduler was found
  */
 scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid)
 {
@@ -719,11 +765,13 @@ scheduler_t *check_if_scheduler_exists_run_by(process_t *process, pid_t pid)
     return scheduler;
 }
 
-/** @brief 
+/** @brief Checks if worker thread with @p wid exists in @p worker_list of the completion list
  *.
- *
- *  @param 
- *  @return 
+ * Search is performed using local_list member of @ref worker 
+ * 
+ *  @param worker_list pointer to @ref worker_list
+ *  @param wid Worker ID
+ *  @return returns pointer to @ref worker, or @c NULL if no worker was found
  */
 worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
 {
@@ -746,11 +794,13 @@ worker_t *check_if_worker_exists(worker_list_t *worker_list, ums_wid_t wid)
     return worker;
 }
 
-/** @brief 
+/** @brief Checks if worker thread with @p wid exists in @p worker_list of the process
  *.
- *
- *  @param 
- *  @return 
+ * Search is performed using global_list member of @ref worker
+ *  
+ *  @param worker_list pointer to @ref worker_list
+ *  @param wid Worker ID
+ *  @return returns pointer to @ref worker, or @c NULL if no worker was found
  */
 worker_t *check_if_worker_exists_global(worker_list_t *worker_list, ums_wid_t wid)
 {
@@ -773,11 +823,11 @@ worker_t *check_if_worker_exists_global(worker_list_t *worker_list, ums_wid_t wi
     return worker;
 }
 
-/** @brief 
+/** @brief Checks if schedulers of the process have finished their work
  *.
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process 
+ *  @return returns @ref state
  */
 state_t check_schedulers_state(process_t *process)
 {
@@ -801,11 +851,15 @@ state_t check_schedulers_state(process_t *process)
     return progress;
 }
 
-/** @brief 
+/** @brief Deletes @ref process from the global @ref process_list 
  *.
+ *  The function was used during early phases of development and later was left unused,
+ *  since proc entries of the process are linked to @ref process (in case user wants to see statistics, the data should be available for read), it was decided that only kernel module can delete data structures allocated for the process
+ *  Therefore @ref delete_process_safe() is used to delete @ref process 
+ *  Still the function performs a check to see if all schedulers have finished their job and then performs series of deletions of all data structures used by the process
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_process(process_t *process)
 {
@@ -820,6 +874,7 @@ int delete_process(process_t *process)
     }
 
     delete_completion_lists_and_worker_threads(process);
+    //delete_workers_from_process_list(process->worker_list);
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
@@ -831,17 +886,20 @@ int delete_process(process_t *process)
     return ret;
 }
 
-/** @brief 
+/** @brief Called by UMS kernel module when module exits to delete @ref process from the global @ref process_list 
  *.
+ *  The function does not perform a check to see if all schedulers have finished their job to delete data structures used by the process
+ *  It is assumed that all work has been done, therefore user issued a command to UMS kernel module to exit
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_process_safe(process_t *process)
 {
     int ret;
 
     delete_completion_lists_and_worker_threads(process);
+    //delete_workers_from_process_list(process->worker_list);
     delete_schedulers(process);
     list_del(&process->list);
     process_list.process_count--;
@@ -853,11 +911,12 @@ int delete_process_safe(process_t *process)
     return ret;
 }
 
-/** @brief 
+/** @brief Deletes completion lists and worker threads created by the process 
  *.
+ *  Calls @ref delete_workers_from_completion_list() and frees allocated memory that was used by the completion lists
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_completion_lists_and_worker_threads(process_t *process)
 {
@@ -884,11 +943,11 @@ int delete_completion_lists_and_worker_threads(process_t *process)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Deletes worker threads assigned to the completion list
  *.
  *
- *  @param 
- *  @return 
+ *  @param worker_list pointer to @ref worker_list of the @ref completion_list_node 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_workers_from_completion_list(worker_list_t *worker_list)
 {
@@ -908,11 +967,12 @@ int delete_workers_from_completion_list(worker_list_t *worker_list)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Deletes worker threads created by the process
  *.
+ *  Frees allocated memory that was used by the worker threads
  *
- *  @param 
- *  @return 
+ *  @param worker_list pointer to @ref worker_list of the @ref process 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_workers_from_process_list(worker_list_t *worker_list)
 {
@@ -931,11 +991,12 @@ int delete_workers_from_process_list(worker_list_t *worker_list)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Deletes schedulers created by the process
  *.
- *
- *  @param 
- *  @return 
+ *  Frees allocated memory that was used by the schedulers
+ *  
+ *  @param process pointer to @ref process 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int delete_schedulers(process_t *process)
 {
@@ -957,11 +1018,11 @@ int delete_schedulers(process_t *process)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Performs a cleanup by deleting all the allocated data structures for all processes that were managed by the UMS kernel module
  *.
- *
- *  @param 
- *  @return 
+ *  
+ * 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 int cleanup()
 {
@@ -979,11 +1040,11 @@ int cleanup()
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Computes time difference between passed @p prev_time and current time, which is used in this case as an indicator of execution time for @ref worker and @ref scheduler
  *.
  *
- *  @param 
- *  @return 
+ *  @param prev_time member of @ref worker and @ref scheduler
+ *  @return returns unsigned long
  */
 unsigned long get_exec_time(struct timespec64 *prev_time)
 {
@@ -1251,11 +1312,11 @@ static int worker_proc_open(struct inode *inode, struct file *file)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Shows the data/statistics of the @ref scheduler and used by @c single_open()
  *.
  *
- *  @param 
- *  @return 
+ * 
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 static int scheduler_proc_show(struct seq_file *m, void *p)
 {
@@ -1275,11 +1336,11 @@ static int scheduler_proc_show(struct seq_file *m, void *p)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Shows the data/statistics of the @ref worker and used by @c single_open()
  *.
  *
- *  @param 
- *  @return 
+ *  
+ *  @return returns @ref UMS_SUCCESS if succesful 
  */
 static int worker_proc_show(struct seq_file *m, void *p)
 {
