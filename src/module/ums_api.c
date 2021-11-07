@@ -316,8 +316,8 @@ ums_wid_t create_worker_thread(worker_params_t *params)
  *      - scheduler::comp_list is set to the pointer of the completion list retrieved using @ref check_if_completion_list_exists by passing scheduler_params::clid
  *      - scheduler::regs is a @c pt_regs data structure and set to a snapshot of current CPU registers of the pthread
  *          - scheduler::return_addr is set to regs::ip
- *          - scheduler::stack_ptr is set to regs::bp
- *          - scheduler::scheduler is set to regs::sp
+ *          - scheduler::stack_ptr is set to regs::sp
+ *          - scheduler::base_ptr is set to regs::bp
  *          - regs::ip is set to scheduler_params::entry_point
  *      - scheduler::fpu_regs is a @c fpu data structure and set to a snapshot of current FPU registers of the pthread
  *      - Sets the state of the completion list assigned to that scheduler to RUNNING, since the scheduling starts after the completion of ioctl call
@@ -405,11 +405,23 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     return scheduler_id;
 }
 
-/** @brief 
- *.
+/** @brief Converts @ref scheduler back to the pthread
  *
- *  @param 
- *  @return 
+ *  To create a @ref scheduler, UMS kernel module:
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if scheduler associated by the pthread already exists, if not returns @ref UMS_ERROR_SCHEDULER_NOT_FOUND
+ *   - Modifies @ref scheduler:
+ *      - scheduler::wid is set to -1
+ *      - scheduler::state is set to FINISHED
+ *      - scheduler::regs is modified:
+ *          - regs::ip is set to scheduler::return_addr 
+ *          - regs::sp is set to scheduler::stack_ptr
+ *          - regs::bp is set to scheduler::base_ptr
+ *          - regs::ip is set to scheduler_params::entry_point
+ *      - Performs a context switch by copying previosly saved and modified scheduler::regs data structure to @c task_pt_regs(current)
+ *      - Changes current FPU registers to previously saved scheduller::fpu_regs via @c copy_kernel_to_fxregs()
+ *      
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int exit_scheduling_mode(void)
 {
@@ -443,11 +455,20 @@ int exit_scheduling_mode(void)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Executes a worker thread with a @p worker_id
  *.
+ *  To execute the worker thread: 
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if scheduler associated by the pthread already exists, if not returns @ref UMS_ERROR_SCHEDULER_NOT_FOUND
+ *   - Checks if the worker thread exists, currently running, completed its' work
+ *   - Updates the worker and scheduler data structures
+ *   - Records the statistics related to the scheduler and worker, such as number of switches and the time the switch happened
+ *   - Saves the register values of the scheduler
+ *   - Performs a context switch
+ *   
  *
- *  @param 
- *  @return 
+ *  @param worker_id Worker thread ID
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int execute_thread(ums_wid_t worker_id)
 {
@@ -520,11 +541,26 @@ int execute_thread(ums_wid_t worker_id)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Pauses or completes the execution of the worker thread
  *.
+ *  To pause or complete the execution of the worker thread: 
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if scheduler associated by the pthread already exists, if not returns @ref UMS_ERROR_SCHEDULER_NOT_FOUND
+ *   - Checks if the worker thread exists, currently running, completed its' work
+ *   - Updates the worker, scheduler and completion list data structures:
+ *      - if @p status is set to PAUSE:
+ *          - worker::state is set to IDLE, so that it can be scheduled later
+ *          - worker is added back to the completion list 
+ *      - if @p status is set to FINISH:
+ *          - worker::state is set to FINISHED
+ *          - completion list increments the value of finished workers
+ *   - Records the statistics related to the scheduler and worker, such as number of switches and the time the switch happened
+ *   - Saves the register values of the worker thread
+ *   - Performs a context switch
+ *   
  *
- *  @param 
- *  @return 
+ *  @param status value of @ref worker_status, which is the status of the worker thread
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int thread_yield(worker_status_t status)
 {
@@ -583,11 +619,17 @@ int thread_yield(worker_status_t status)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Provides a list of available worker threads of the completion list that can be scheduled
  *.
+ *   To retrieve the list of available worker threads: 
+ *   - Checks if the process is already managed, if not returns @ref UMS_ERROR_PROCESS_NOT_FOUND
+ *   - Checks if scheduler associated by the pthread already exists, if not returns @ref UMS_ERROR_SCHEDULER_NOT_FOUND
+ *   - Checks if there are any available workers, if not modifes @p params state value to FINISHED to indicate the completion of the work
+ *   - Retrieves the list of idle worker threads from the completion list and copies them back to the @p params
  *
- *  @param 
- *  @return 
+ *
+ *  @param params pointer to @ref list_params
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int dequeue_completion_list_items(list_params_t *params)
 {
@@ -1059,11 +1101,11 @@ unsigned long get_exec_time(struct timespec64 *prev_time)
     return cur - prev;
 }
 
-/** @brief 
+/** @brief Initializes the core proc directory for UMS kernel module
  *.
  *
- *  @param 
- *  @return 
+ *  
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int init_proc(void)
 {
@@ -1079,11 +1121,11 @@ int init_proc(void)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Deletes all proc files of the UMS kernel module
  *.
  *
- *  @param 
- *  @return 
+ *
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int delete_proc(void)
 {
@@ -1109,11 +1151,14 @@ static struct proc_ops worker_proc_file_ops = {
     .proc_release = seq_release
 };
 
-/** @brief 
+/** @brief Dinamically creates essential proc entries for the process
  *.
+ *  Allocates a memory for @ref process_proc_entry and initializes it:
+ *      - Creates a folder to represent the process
+ *      - Creates schedulers folder
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process 
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int create_process_proc_entry(process_t *process)
 {
@@ -1146,11 +1191,17 @@ int create_process_proc_entry(process_t *process)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Dinamically creates essential proc entries for the scheduler of the process
  *.
+ *  Allocates a memory for @ref scheduler_proc_entry and initializes it:
+ *      - Creates a folder to represent the scheduler
+ *      - Creates info file that provides statistics about the scheduler
+ *      - Creates workers folder of the completion list that is assigned to the scheduler
+ *      - Creates proc entries for each worker thread by calling @ref create_worker_proc_entry()
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process
+ *  @param scheduler pointer to @ref scheduler
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
 {
@@ -1212,11 +1263,15 @@ int create_scheduler_proc_entry(process_t *process, scheduler_t *scheduler)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Dinamically creates essential proc entries for the worker of the process
  *.
+ *  Allocates a memory for @ref worker_proc_entry and initializes it:
+ *      - Creates a file that provides statistics about the worker
  *
- *  @param 
- *  @return 
+ *  @param process pointer to @ref process
+ *  @param scheduler pointer to @ref scheduler
+ *  @param worker pointer to @ref worker
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_t *worker)
 {
@@ -1243,11 +1298,12 @@ int create_worker_proc_entry(process_t *process, scheduler_t *scheduler, worker_
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Function that is used when opening info file inside the scheduler folder, it will eventually calls @c single_open()
  *.
  *
- *  @param 
- *  @return 
+ *  @param inode
+ *  @param file
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 static int scheduler_proc_open(struct inode *inode, struct file *file)
 {
@@ -1274,11 +1330,12 @@ static int scheduler_proc_open(struct inode *inode, struct file *file)
     return UMS_SUCCESS;
 }
 
-/** @brief 
+/** @brief Function that is used when opening worker file inside the workers folder of the scheduler, it will eventually calls @c single_open()
  *.
  *
- *  @param 
- *  @return 
+ *  @param inode
+ *  @param file
+ *  @return returns @ref UMS_SUCCESS when succesful or error constant if there are any errors  
  */
 static int worker_proc_open(struct inode *inode, struct file *file)
 {
