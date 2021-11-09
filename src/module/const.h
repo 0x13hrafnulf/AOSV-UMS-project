@@ -57,25 +57,25 @@
 /*
  * Errors and return values
  */
-#define UMS_SUCCESS                                                     0                                           ///< 
-#define UMS_ERROR                                                       1                                           ///<
-#define UMS_ERROR_PROCESS_NOT_FOUND                                     1000                                        ///<
-#define UMS_ERROR_PROCESS_ALREADY_EXISTS                                1001                                        ///<
-#define UMS_ERROR_COMPLETION_LIST_NOT_FOUND                             1002                                        ///<
-#define UMS_ERROR_SCHEDULER_NOT_FOUND                                   1003                                        ///<
-#define UMS_ERROR_WORKER_NOT_FOUND                                      1004                                        ///<
-#define UMS_ERROR_STATE_RUNNING                                         1005                                        ///<
-#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD                      1006 || UMS_ERROR_PROCESS_NOT_FOUND         ///<
-#define UMS_ERROR_WORKER_ALREADY_RUNNING                                1007                                        ///<
-#define UMS_ERROR_WRONG_INPUT                                           1008                                        ///<
-#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER                        1009                                        ///<
-#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_WORKER                           1010                                        ///<
-#define UMS_ERROR_WORKER_ALREADY_FINISHED                               1011                                        ///<
-#define UMS_ERROR_NO_AVAILABLE_WORKERS                                  1012                                        ///<
-#define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED                      1013                                        ///<
-#define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY                           1014                                        ///<
-#define UMS_ERROR_FAILED_TO_PROC_OPEN                                   1015                                        ///<
-#define UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED        1016                                        ///<
+#define UMS_SUCCESS                                                     0                                           ///< Succesful execution
+#define UMS_ERROR                                                       1                                           ///< Error
+#define UMS_ERROR_PROCESS_NOT_FOUND                                     1000                                        ///< Process is not managed by UMS kernel module
+#define UMS_ERROR_PROCESS_ALREADY_EXISTS                                1001                                        ///< Process is already managed by UMS kernel module
+#define UMS_ERROR_COMPLETION_LIST_NOT_FOUND                             1002                                        ///< Completion list cannot be found
+#define UMS_ERROR_SCHEDULER_NOT_FOUND                                   1003                                        ///< Scheduler cannot be found
+#define UMS_ERROR_WORKER_NOT_FOUND                                      1004                                        ///< Worker thread cannot be found
+#define UMS_ERROR_STATE_RUNNING                                         1005                                        ///< The object is still running, thus cannot be modified, updated, deleted
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD                      1006 || UMS_ERROR_PROCESS_NOT_FOUND         ///< The command is not issued by the main process thread, e.g. ums_exit()
+#define UMS_ERROR_WORKER_ALREADY_RUNNING                                1007                                        ///< The worker thread is already running
+#define UMS_ERROR_WRONG_INPUT                                           1008                                        ///< Wrong input
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER                        1009                                        ///< The command is not issued by the scheduler
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_WORKER                           1010                                        ///< The command is not issued by the worker
+#define UMS_ERROR_WORKER_ALREADY_FINISHED                               1011                                        ///< The worker thread has already finished execution
+#define UMS_ERROR_NO_AVAILABLE_WORKERS                                  1012                                        ///< No worker threads are available
+#define UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED                      1013                                        ///< All worker threads in the completion list have finished execution
+#define UMS_ERROR_FAILED_TO_CREATE_PROC_ENTRY                           1014                                        ///< Failed to create proc entry
+#define UMS_ERROR_FAILED_TO_PROC_OPEN                                   1015                                        ///< Failed to open proc entry
+#define UMS_ERROR_COMPLETION_LIST_IS_USED_AND_CANNOT_BE_MODIFIED        1016                                        ///< The completion list is being used, thus cannot be modified
 
 /** @brief States of processes, completion lists and threads (schedulers, worker threads)
  *.
