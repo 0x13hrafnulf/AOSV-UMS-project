@@ -62,7 +62,7 @@ __thread ums_clid_t completion_list_id;
  *.
  * Uses mutex to protect a shared resource from simultaneous access by multiple threads
  *
- *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
+ *  @return returns @c UMS_SUCCESS when succesful or @c UMS_ERROR if there are any errors 
  */
 int open_device()
 {
@@ -84,7 +84,7 @@ int open_device()
  *.
  * Uses mutex to protect a shared resource from simultaneous access by multiple threads
  *
- *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
+ *  @return returns @c UMS_SUCCESS when succesful or @c UMS_ERROR if there are any errors 
  */
 int close_device()
 {
@@ -104,7 +104,7 @@ int close_device()
  *.
  * 
  *
- *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
+ *  @return returns @c UMS_SUCCESS when succesful or @c UMS_ERROR if there are any errors 
  */
 int ums_enter()
 {
@@ -129,7 +129,7 @@ int ums_enter()
  *.
  *
  *  
- *  @return returns @ref UMS_SUCCESS when succesful or @ref UMS_ERROR if there are any errors 
+ *  @return returns @c UMS_SUCCESS when succesful or @c UMS_ERROR if there are any errors 
  */
 int ums_exit()
 {
@@ -458,7 +458,7 @@ int ums_execute_thread(ums_wid_t wid)
  *   - Remove the worker thread from the list of worker threads that can be scheduled, thus completes the execution; 
  *   - Push it back to the list of available worker thread, thus pauses its' execution and can be rescheduled later.
  *  
- *  @param status defines the status of the execution flow of the worker thread (passing PAUSE will pause the execution, when FINISH will complete it)
+ *  @param status defines the status of the execution flow of the worker thread (passing @c PAUSE will pause the execution, when @c FINISH will complete it)
  *  @return 
  */
 int ums_thread_yield(worker_status_t status) 
@@ -625,7 +625,7 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 
 /** @brief Performs a cleanup by deleting all the data structures allocated by the library
  *.
- *  
+ *  @return returns @c UMS_SUCCESS when succesful or @c UMS_ERROR if there are any errors 
  */
 int cleanup()
 {
@@ -701,7 +701,7 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
  *.
  *
  *  @param wid Worker thread ID
- *  @return returns a @ref UMS_SUCCESS if worker thread exists, - @ref UMS_ERROR_WORKER_NOT_FOUND otherwise
+ *  @return returns a @c UMS_SUCCESS if worker thread exists, @c UMS_ERROR_WORKER_NOT_FOUND otherwise
  */
 int check_if_worker_exists(ums_wid_t wid)
 {
