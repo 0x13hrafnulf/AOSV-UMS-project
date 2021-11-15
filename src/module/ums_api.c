@@ -441,7 +441,11 @@ int exit_scheduling_mode(void)
     {
         return -UMS_ERROR_SCHEDULER_NOT_FOUND;
     }
-    scheduler->wid = -1;
+
+    if(scheduler->wid != -1)
+    {
+        return -UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER;
+    }
     scheduler->state = FINISHED;
 
 

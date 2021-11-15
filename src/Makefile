@@ -3,10 +3,10 @@ CFLAGS = -Wall -g
 INCLUDES = -I./library
 LFLAGS = -pthread
 LIB_DIR = ./library
-SRCS = ums_example.c $(LIB_DIR)/ums_lib.c
+SRCS = ums_example_1.c $(LIB_DIR)/ums_lib.c
 OBJS = $(SRCS:.c=.o)
 
-MAIN = example
+MAIN = example1_1
 
 .PHONY: clean
 

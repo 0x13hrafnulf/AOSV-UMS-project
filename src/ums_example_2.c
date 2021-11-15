@@ -68,6 +68,7 @@ int main()
 {
     ums_enter();
     ums_clid_t comp_list1 =  ums_create_completion_list();
+    ums_clid_t comp_list2 =  ums_create_completion_list();
     
     int arg1 = 1;
     int arg2 = 2;
@@ -76,14 +77,14 @@ int main()
     ums_wid_t worker3 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker4 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     ums_wid_t worker5 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker6 = ums_create_worker_thread(comp_list1, STACK_SIZE, function1, &arg1);
-    ums_wid_t worker7 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker8 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker9 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
-    ums_wid_t worker10 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker6 = ums_create_worker_thread(comp_list2, STACK_SIZE, function1, &arg1);
+    ums_wid_t worker7 = ums_create_worker_thread(comp_list2, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker8 = ums_create_worker_thread(comp_list2, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker9 = ums_create_worker_thread(comp_list2, STACK_SIZE, function2, &arg2);
+    ums_wid_t worker10 = ums_create_worker_thread(comp_list2, STACK_SIZE, function2, &arg2);
     
     ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, loop1);
-    ums_sid_t scheduler2 = ums_create_scheduler(comp_list1, loop1);
+    ums_sid_t scheduler2 = ums_create_scheduler(comp_list2, loop1);
     
     ums_exit();
 

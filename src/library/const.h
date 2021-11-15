@@ -62,7 +62,7 @@
 #define UMS_ERROR_SCHEDULER_NOT_FOUND                                   1003                                        ///< Scheduler cannot be found
 #define UMS_ERROR_WORKER_NOT_FOUND                                      1004                                        ///< Worker thread cannot be found
 #define UMS_ERROR_STATE_RUNNING                                         1005                                        ///< The object is still running, thus cannot be modified, updated, deleted
-#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD                      1006 || UMS_ERROR_PROCESS_NOT_FOUND         ///< The command is not issued by the main process thread, e.g. ums_exit()
+#define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_MAIN_THREAD                      1006                                        ///< The command is not issued by the main process thread, e.g. ums_exit()
 #define UMS_ERROR_WORKER_ALREADY_RUNNING                                1007                                        ///< The worker thread is already running
 #define UMS_ERROR_WRONG_INPUT                                           1008                                        ///< Wrong input
 #define UMS_ERROR_CMD_IS_NOT_ISSUED_BY_SCHEDULER                        1009                                        ///< The command is not issued by the scheduler
