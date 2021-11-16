@@ -4,14 +4,14 @@
 
 void loop1()
 {
-    printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
+        printf("---- UMS_EXAMPLE_%s\n", __FUNCTION__);
     
 
     list_params_t *ready_list = ums_dequeue_completion_list_items();
     ums_wid_t worker_id = ums_get_next_worker_thread(ready_list);
     while(ready_list->state != FINISHED)
     {
-        printf("-- UMS_EXAMPLE_LOOP: Worker = %d\n", (int)worker_id);
+        printf("---- UMS_EXAMPLE_LOOP: Worker = %d\n", (int)worker_id);
         ums_execute_thread(worker_id);
         ready_list = ums_dequeue_completion_list_items();
         worker_id = ums_get_next_worker_thread(ready_list);
@@ -22,29 +22,29 @@ void loop1()
 
 void loop2()
 {
-    printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
+    printf("---- UMS_EXAMPLE_%s\n", __FUNCTION__);
     list_params_t *ready_list = ums_dequeue_completion_list_items();
     ums_wid_t worker_id = ums_get_next_worker_thread(ready_list);
-    printf("-- UMS_EXAMPLE_LOOP: Worker = %d\n", (int)worker_id);
+    printf("---- UMS_EXAMPLE_LOOP: Worker = %d\n", (int)worker_id);
     ums_execute_thread(worker_id);
     ums_exit_scheduling_mode();
 }
 
 void function1(void *args)
 {
-    printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
-    printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %ld\n", pthread_self());
+    printf("---- UMS_EXAMPLE_%s\n", __FUNCTION__);
+    printf("---- UMS_EXAMPLE: args = %d\n", *(int*)args);
+    printf("---- pthread_id = %ld\n", pthread_self());
     int check = 5;
     for(int i = 0; i < 5; ++i)
     {
         getpid();
     }
     ums_thread_pause();
-    printf("- UMS_EXAMPLE_Continue_%s\n", __FUNCTION__);
-    printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %ld\n", pthread_self());
-    printf("-- Check = %d\n", check);
+    printf("---- UMS_EXAMPLE_Continue_%s\n", __FUNCTION__);
+    printf("---- UMS_EXAMPLE: args = %d\n", *(int*)args);
+    printf("---- pthread_id = %ld\n", pthread_self());
+    printf("---- Check = %d\n", check);
     for(int i = 0; i < 5; ++i)
     {
         getpid();
@@ -54,9 +54,9 @@ void function1(void *args)
 
 void function2(void *args)
 {
-    printf("- UMS_EXAMPLE_%s\n", __FUNCTION__);
-    printf("-- UMS_EXAMPLE: args = %d\n", *(int*)args);
-    printf("-- pthread_id = %ld\n", pthread_self());
+    printf("---- UMS_EXAMPLE_%s\n", __FUNCTION__);
+    printf("---- UMS_EXAMPLE: args = %d\n", *(int*)args);
+    printf("---- pthread_id = %ld\n", pthread_self());
     for(int i = 0; i < 5; ++i)
     {
        getpid();
@@ -83,7 +83,7 @@ int main()
     ums_wid_t worker10 = ums_create_worker_thread(comp_list1, STACK_SIZE, function2, &arg2);
     
     ums_sid_t scheduler1 = ums_create_scheduler(comp_list1, loop1);
-    //ums_sid_t scheduler2 = ums_create_scheduler(comp_list1, loop1);
+    ums_sid_t scheduler2 = ums_create_scheduler(comp_list1, loop1);
     
     ums_exit();
 

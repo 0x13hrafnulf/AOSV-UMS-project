@@ -6,7 +6,7 @@ LIB_DIR = ./library
 SRCS = ums_example_1.c $(LIB_DIR)/ums_lib.c
 OBJS = $(SRCS:.c=.o)
 
-MAIN = example1_1
+MAIN = example1
 
 .PHONY: clean
 
