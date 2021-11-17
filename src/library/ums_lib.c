@@ -551,10 +551,10 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }
 
-    comp_list = check_if_completion_list_exists(clid);
+    comp_list = check_if_completion_list_exists(completion_list_id);
     if(comp_list == NULL)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Completion list:%d does not exist.\n", (int)clid);
+        printf("Error: ums_dequeue_completion_list_items() => Completion list:%d does not exist.\n", (int)completion_list_id);
         return -UMS_ERROR;
     }
             
@@ -594,8 +594,11 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }   
     
-    comp_list->state = FINISHED;
-
+    if(list->state == FINISHED)
+    {
+        comp_list->state = FINISHED;
+    }
+    
     out:
     return list;
 }
