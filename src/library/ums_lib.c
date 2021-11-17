@@ -195,8 +195,7 @@ ums_clid_t ums_create_completion_list()
     
     comp_list->clid = (ums_clid_t)ret;
     comp_list->worker_count = 0;
-    pthread_mutex_init(&comp_list->mutex, NULL);
-    pthread_cond_init(&comp_list->update, NULL);
+    comp_list->state = IDLE;
     list_add_tail(&(comp_list->list), &completion_lists.list);
     completion_lists.count++;
 
@@ -478,14 +477,14 @@ int ums_thread_yield(worker_status_t status)
     scheduler = check_if_scheduler_exists();
     if(scheduler == NULL)
     {
-        printf("Error: ums_execute_thread() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
+        printf("Error: ums_thread_yield() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
         return -UMS_ERROR;
     }
 
     worker = check_if_worker_exists(scheduler->wid);
     if(worker == NULL)
     {
-        printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)scheduler->wid);
+        printf("Error: ums_thread_yield() => Worker thread:%d was not found!\n", (int)scheduler->wid);
         return -UMS_ERROR;
     }
 
@@ -494,14 +493,14 @@ int ums_thread_yield(worker_status_t status)
     int ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => UMS_DEVICE => Error# = %d\n", errno);
+        printf("Error: ums_thread_yield() => UMS_DEVICE => Error# = %d\n", errno);
         return -UMS_ERROR;
     }
 
     ret = ioctl(ums_dev, UMS_THREAD_YIELD, (unsigned long)status);
     if(ret < 0)
     {
-        printf("Error: ums_execute_thread() => IOCTL => Error# = %d\n", errno);
+        printf("Error: ums_thread_yield() => IOCTL => Error# = %d\n", errno);
         return -UMS_ERROR;
     }   
 
@@ -543,11 +542,19 @@ list_params_t *ums_dequeue_completion_list_items()
 {
     list_params_t *list;
     ums_scheduler_t *scheduler;
+    ums_completion_list_node_t *comp_list;
 
     scheduler = check_if_scheduler_exists();
     if(scheduler == NULL)
     {
         printf("Error: ums_dequeue_completion_list_items() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
+        return -UMS_ERROR;
+    }
+
+    comp_list = check_if_completion_list_exists(clid);
+    if(comp_list == NULL)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Completion list:%d does not exist.\n", (int)clid);
         return -UMS_ERROR;
     }
             
@@ -556,7 +563,7 @@ list_params_t *ums_dequeue_completion_list_items()
     
     printf("Dequeue: %ld\n", pthread_self());
     printf("Dequeue: count %d, state: %d\n", list->worker_count, list->state);
-    if(list->worker_count == 0 && list->state != FINISHED)
+    if(list->worker_count == 0 && comp_list->state != FINISHED)
     { 
       
         printf("Updating the list %ld\n", pthread_self());
@@ -565,6 +572,10 @@ list_params_t *ums_dequeue_completion_list_items()
     else
     {
         printf("SKIPPING %ld\n", pthread_self());
+        if(comp_list->state == FINISHED)
+        {
+            list->state = FINISHED;
+        }
         goto out;
     }
     
@@ -583,11 +594,7 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }   
     
-    if(ret < 0)
-    {
-        printf("Error: ums_dequeue_completion_list_items() => pthread_cond_broadcast() => Error# = %d\n", errno);
-        return -UMS_ERROR;
-    } 
+    comp_list->state = FINISHED;
 
     out:
     return list;
@@ -608,7 +615,7 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     scheduler = check_if_scheduler_exists();
     if(scheduler == NULL)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
+        printf("Error: ums_get_next_worker_thread() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
         return -UMS_ERROR;
     }
 
@@ -648,7 +655,6 @@ int cleanup()
         {
             list_del(&temp->list);
             printf("UMS_LIB: Completion list:%d was deleted.\n", temp->clid);
-            if(temp->list_params != NULL) delete(temp->list_params);
             delete(temp);
         }
     }

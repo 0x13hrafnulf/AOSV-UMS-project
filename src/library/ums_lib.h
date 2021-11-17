@@ -78,12 +78,8 @@ typedef struct ums_completion_list {
  */
 typedef struct ums_completion_list_node {
     ums_clid_t clid;                                /**< Completion list ID */
-    pthread_t writer;                               /**< pthread that is responsible for the list updates */
-    int update_required;                           /**< Update status */
+    state_t state;                                  /**< State of the completion list */
     unsigned int worker_count;                      /**< Number of worker threads assigned to the completion list */
-    unsigned int usage;                             /**< Number of schedulers currently using the completion list (required for shared resource update) */
-    pthread_cond_t update;                          /**< Conditional variable that is signaled when the completion list is updated, while schedulers wait for an update */
-    pthread_mutex_t mutex;                          /**< Mutex for the completion list, since it can be shared by the multiple schedulers */
     struct list_head list;                          
     list_params_t *list_params;                     /**< Parameters that are created by the scheduler and passed to dequeue the completion list items @ref list_params */
 } ums_completion_list_node_t;
