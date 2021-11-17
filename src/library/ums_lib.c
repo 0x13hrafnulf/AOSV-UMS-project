@@ -448,6 +448,7 @@ int ums_execute_thread(ums_wid_t wid)
     }
 
     scheduler->wid = wid;
+    worker->state = RUNNING;
     ret = ioctl(ums_dev, UMS_EXECUTE_THREAD, (unsigned long)wid);
     if(ret < 0)
     {
