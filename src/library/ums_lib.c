@@ -194,10 +194,7 @@ ums_clid_t ums_create_completion_list()
     comp_list = init(ums_completion_list_node_t);
     
     comp_list->clid = (ums_clid_t)ret;
-    comp_list->update_required = FALSE; 
     comp_list->worker_count = 0;
-    comp_list->list_params = NULL;
-    comp_list->usage = 0;
     pthread_mutex_init(&comp_list->mutex, NULL);
     pthread_cond_init(&comp_list->update, NULL);
     list_add_tail(&(comp_list->list), &completion_lists.list);
@@ -268,6 +265,7 @@ ums_wid_t ums_create_worker_thread(ums_clid_t clid, unsigned long stack_size, vo
 
     worker = init(ums_worker_t);
     worker->wid = (ums_wid_t)ret;
+    worker->state = IDLE;
     worker->worker_params = params;
     list_add_tail(&(worker->list), &workers.list);
 
@@ -312,12 +310,10 @@ ums_sid_t ums_create_scheduler(ums_clid_t clid, void (*entry_point)())
     list_add_tail(&(scheduler->list), &schedulers.list);
     schedulers.count++;
 
-    if(comp_list->list_params == NULL)
-    {
-        list = create_list_params(comp_list->worker_count);
-        comp_list->list_params = list;
-        list->size = comp_list->worker_count;
-    }
+    list = create_list_params(comp_list->worker_count);
+    scheduler->list_params = list;
+    list->size = comp_list->worker_count;
+
 
     int ret = pthread_create(&scheduler->tid, NULL, ums_enter_scheduling_mode, (void *)scheduler->sched_params);
     if(ret < 0)
@@ -341,18 +337,6 @@ void *ums_enter_scheduling_mode(void *args)
 {
     scheduler_params_t *params = (scheduler_params_t *)args;
     completion_list_id = params->clid;
-
-    comp_list = check_if_completion_list_exists(completion_list_id);
-    if(comp_list == NULL)
-    {
-        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)completion_list_id);
-        return -UMS_ERROR;
-    }
-    if(!comp_list->update_required)
-    {
-        comp_list->update_required = TRUE;
-        comp_list->writer = pthread_self();
-    }
 
     cpu_set_t set;
     long number_of_cpus = sysconf(_SC_NPROCESSORS_ONLN);
@@ -420,24 +404,25 @@ int ums_exit_scheduling_mode()
 int ums_execute_thread(ums_wid_t wid) 
 {
     list_params_t *list;
-    ums_completion_list_node_t *comp_list;
-
+    ums_scheduler_t *scheduler;
+    ums_worker_t worker;
     printf("EXECUTING %ld\n", pthread_self());
 
-    if(check_if_worker_exists(wid) == -UMS_ERROR_WORKER_NOT_FOUND)
+    worker = check_if_worker_exists(wid);
+    if(worker == NULL)
     {
         printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
         return -UMS_ERROR;
     }
 
-    comp_list = check_if_completion_list_exists(completion_list_id);
-    if(comp_list == NULL)
+    scheduler = check_if_scheduler_exists();
+    if(scheduler == NULL)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)completion_list_id);
+        printf("Error: ums_execute_thread() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
         return -UMS_ERROR;
     }
 
-    list = comp_list->list_params;
+    list = scheduler->list_params;
     if(list != NULL)
     {
         int index = 0;
@@ -445,13 +430,18 @@ int ums_execute_thread(ums_wid_t wid)
         {
             ++index;
         }
-        comp_list->usage++;
         list->workers[index] = -1;
         list->worker_count--;
-        printf("EXECUTING: count %d, wid %d, index %d\n", list->worker_count, wid, index);
     }
 
-    int ret = open_device();
+    int ret;
+    if(worker->state != IDLE)
+    {
+        ret = -(UMS_ERROR_WORKER_ALREADY_RUNNING | UMS_ERROR_WORKER_ALREADY_FINISHED);
+        goto out;
+    }
+
+    ret = open_device();
     if(ret < 0)
     {
         printf("Error: ums_execute_thread() => UMS_DEVICE => Error# = %d\n", errno);
@@ -465,6 +455,8 @@ int ums_execute_thread(ums_wid_t wid)
         return -UMS_ERROR;
     }   
 
+
+    out:
     return ret;
 }
 
@@ -478,16 +470,18 @@ int ums_execute_thread(ums_wid_t wid)
  *  @return 
  */
 int ums_thread_yield(worker_status_t status) 
-{
-    ums_completion_list_node_t *comp_list;
+{  
+    ums_worker_t worker;
+    printf("EXECUTING %ld\n", pthread_self());
 
-    comp_list = check_if_completion_list_exists(completion_list_id);
-    if(comp_list == NULL)
+    worker = check_if_worker_exists(wid);
+    if(worker == NULL)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)completion_list_id);
+        printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
         return -UMS_ERROR;
     }
-    comp_list->usage--;
+
+    worker->state = (status == PAUSE) ? IDLE : FINISHED;
 
     int ret = open_device();
     if(ret < 0)
@@ -540,39 +534,25 @@ int ums_thread_exit()
 list_params_t *ums_dequeue_completion_list_items()
 {
     list_params_t *list;
-    ums_completion_list_node_t *comp_list;
+    ums_scheduler_t *scheduler;
 
-    comp_list = check_if_completion_list_exists(completion_list_id);
-    if(comp_list == NULL)
+    scheduler = check_if_scheduler_exists();
+    if(scheduler == NULL)
     {
-        printf("Error: ums_dequeue_completion_list_items() => Completion list: %d does not exist.\n", (int)completion_list_id);
+        printf("Error: ums_dequeue_completion_list_items() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
         return -UMS_ERROR;
     }
-
+            
     int ret;
-    list = comp_list->list_params;
+    list = scheduler->list_params;
     
     printf("Dequeue: %ld\n", pthread_self());
     printf("Dequeue: count %d, state: %d, usage: %d\n", list->worker_count, list->state, comp_list->usage);
-    if(comp_list->update_required)
+    if(list->worker_count == 0 && list->state != FINISHED)
     { 
-        pthread_mutex_lock(&comp_list->mutex);
-        if(!pthread_equal(comp_list->writer, pthread_self()))
-        {
-            printf("Waiting for signal %ld\n", pthread_self());
-            ret = pthread_cond_wait(&comp_list->update, &comp_list->mutex);
-            if(ret < 0)
-            {
-                printf("Error: ums_dequeue_completion_list_items() => pthread_cond_wait() => Error# = %d\n", errno);
-                return -UMS_ERROR;
-            }   
-            goto out;
-        }
-        else
-        {
-            printf("Updating the list %ld\n", pthread_self());
-            goto dequeue;
-        }
+      
+        printf("Updating the list %ld\n", pthread_self());
+        goto dequeue;
     }
     else
     {
@@ -595,15 +575,11 @@ list_params_t *ums_dequeue_completion_list_items()
         return -UMS_ERROR;
     }   
     
-    comp_list->update_required = FALSE;
-    ret = pthread_cond_broadcast(&comp_list->update);
     if(ret < 0)
     {
         printf("Error: ums_dequeue_completion_list_items() => pthread_cond_broadcast() => Error# = %d\n", errno);
         return -UMS_ERROR;
     } 
-
-    pthread_mutex_unlock(&comp_list->mutex);
 
     out:
     return list;
@@ -619,6 +595,15 @@ list_params_t *ums_dequeue_completion_list_items()
  */
 ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 {
+    ums_scheduler_t *scheduler;
+
+    scheduler = check_if_scheduler_exists();
+    if(scheduler == NULL)
+    {
+        printf("Error: ums_dequeue_completion_list_items() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
+        return -UMS_ERROR;
+    }
+
     if(list->state == FINISHED)
     {
         printf("Error: get_next_worker_thread() => Completion list is finished!\n");
@@ -627,7 +612,6 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     else if(list->worker_count == 0)
     {
         printf("Error: get_next_worker_thread() => No available worker threads to run!\n");
-        comp_list->update_required = TRUE;
         return -UMS_ERROR_NO_AVAILABLE_WORKERS;
     }
 
@@ -683,6 +667,7 @@ int cleanup()
             list_del(&temp->list);
             printf("UMS_LIB: Scheduler:%d  was deleted.\n", temp->sched_params->sid);
             if(temp->sched_params != NULL) delete(temp->sched_params);
+            if(temp->list_params != NULL) delete(temp->list_params);
             delete(temp);
         }
     }
@@ -722,8 +707,10 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
  *  @param wid Worker thread ID
  *  @return returns a @c UMS_SUCCESS if worker thread exists, @c UMS_ERROR_WORKER_NOT_FOUND otherwise
  */
-int check_if_worker_exists(ums_wid_t wid)
+ums_worker_t check_if_worker_exists(ums_wid_t wid)
 {
+    ums_worker_t worker = NULL;
+
     if(!list_empty(&workers.list))
     {
         ums_worker_t *temp = NULL;
@@ -732,12 +719,13 @@ int check_if_worker_exists(ums_wid_t wid)
         {
             if(temp->wid == wid)
             {
-                return UMS_SUCCESS;
+                worker = temp;
+                break;
             }
         }
     }
   
-    return -UMS_ERROR_WORKER_NOT_FOUND;
+    return worker;
 }
 
 /** @brief Checks if the scheduler for the current pthread exists or not
