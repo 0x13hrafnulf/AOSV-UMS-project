@@ -60,7 +60,7 @@ int open_device();
 int close_device();
 int cleanup();
 ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid);
-ums_worker_t check_if_worker_exists(ums_wid_t wid);
+ums_worker_t *check_if_worker_exists(ums_wid_t wid);
 ums_scheduler_t *check_if_scheduler_exists();
 
 /** @brief The list of the completion lists created by the process
@@ -124,6 +124,7 @@ typedef struct ums_scheduler_list {
 typedef struct ums_scheduler {
     struct list_head list;                          
     pthread_t tid;                                  /**< Pthread ID */
+    ums_wid_t wid;                                  /**< Worker thread ID */
     scheduler_params_t *sched_params;               /**< Parameters that are passed in order to create a scheduler @ref scheduler_params */
     list_params_t *list_params;                     /**< Parameters that are created by the scheduler and passed to dequeue the completion list items @ref list_params */
 } ums_scheduler_t;

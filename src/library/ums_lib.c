@@ -405,7 +405,7 @@ int ums_execute_thread(ums_wid_t wid)
 {
     list_params_t *list;
     ums_scheduler_t *scheduler;
-    ums_worker_t worker;
+    ums_worker_t *worker;
     printf("EXECUTING %ld\n", pthread_self());
 
     worker = check_if_worker_exists(wid);
@@ -448,6 +448,7 @@ int ums_execute_thread(ums_wid_t wid)
         return -UMS_ERROR;
     }
 
+    scheduler->wid = wid;
     ret = ioctl(ums_dev, UMS_EXECUTE_THREAD, (unsigned long)wid);
     if(ret < 0)
     {
@@ -471,13 +472,20 @@ int ums_execute_thread(ums_wid_t wid)
  */
 int ums_thread_yield(worker_status_t status) 
 {  
-    ums_worker_t worker;
-    printf("EXECUTING %ld\n", pthread_self());
+    ums_scheduler_t *scheduler;
+    ums_worker_t *worker;
 
-    worker = check_if_worker_exists(wid);
+    scheduler = check_if_scheduler_exists();
+    if(scheduler == NULL)
+    {
+        printf("Error: ums_execute_thread() => Scheduler for pthread: %ld does not exist.\n", pthread_self());
+        return -UMS_ERROR;
+    }
+
+    worker = check_if_worker_exists(scheduler->wid);
     if(worker == NULL)
     {
-        printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)wid);
+        printf("Error: ums_execute_thread() => Worker thread:%d was not found!\n", (int)scheduler->wid);
         return -UMS_ERROR;
     }
 
@@ -547,7 +555,7 @@ list_params_t *ums_dequeue_completion_list_items()
     list = scheduler->list_params;
     
     printf("Dequeue: %ld\n", pthread_self());
-    printf("Dequeue: count %d, state: %d, usage: %d\n", list->worker_count, list->state, comp_list->usage);
+    printf("Dequeue: count %d, state: %d\n", list->worker_count, list->state);
     if(list->worker_count == 0 && list->state != FINISHED)
     { 
       
@@ -707,9 +715,9 @@ ums_completion_list_node_t *check_if_completion_list_exists(ums_clid_t clid)
  *  @param wid Worker thread ID
  *  @return returns a @c UMS_SUCCESS if worker thread exists, @c UMS_ERROR_WORKER_NOT_FOUND otherwise
  */
-ums_worker_t check_if_worker_exists(ums_wid_t wid)
+ums_worker_t *check_if_worker_exists(ums_wid_t wid)
 {
-    ums_worker_t worker = NULL;
+    ums_worker_t *worker = NULL;
 
     if(!list_empty(&workers.list))
     {
