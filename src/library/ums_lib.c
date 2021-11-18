@@ -534,8 +534,8 @@ int ums_thread_exit()
  *.
  *  The function passes a global @ref list_params from the @ref ums_completion_list_node structure to the UMS kernel module
  *  The kernel module populates the structure with the list of available workers and sets the number of those available workers.
- *  The function utilizes pthreads conditional and mutex variables to protect the shared @ref list_params.
- *  Therefore only one scheduler (usually the scheduler that is running the last available worker thread) can update the structure from the kernel module, while others wait in the blocked state for the signal from the conditional variable. 
+ *  Each scheduler has own copy of the @ref list_params, but can notify other scheduler about the state of the completion list (if shared) by updating its' state.
+ *  Thus other schedulers do not have to perform ioctl call, just update their own @ref list_params and set its' @ref state to @c FINISHED
  * 
  *  @return returns the pointer to a shared @ref list_params structure which contains an array of available workers that can be scheduled
  */
