@@ -195,7 +195,7 @@ typedef struct scheduler {
     unsigned int switch_count;                                  /**< Number of context switches */
     unsigned long avg_switch_time;                              /**< Average time needed for context switch */
     unsigned long time_needed_for_the_last_switch;              /**< Time needed for the last context switch */
-    unsigned long total_time_needed_for_the_switch;         /**< Time needed for the last context switch, including the time for finding available worker thread */
+    unsigned long total_time_needed_for_the_switch;             /**< Total time needed for the context switches*/
     struct timespec64 time_of_the_last_switch;                  /**< Time when the last switch occured */
 } scheduler_t;
 
