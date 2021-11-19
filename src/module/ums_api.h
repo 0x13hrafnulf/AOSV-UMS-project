@@ -194,11 +194,9 @@ typedef struct scheduler {
     scheduler_proc_entry_t *proc_entry;                         /**< Proc entry of the scheduler */
     unsigned int switch_count;                                  /**< Number of context switches */
     unsigned long avg_switch_time;                              /**< Average time needed for context switch */
-    unsigned long avg_switch_time_full;                         /**< Average time needed for context switch, including the time for finding available worker thread */
     unsigned long time_needed_for_the_last_switch;              /**< Time needed for the last context switch */
-    unsigned long time_needed_for_the_last_switch_full;         /**< Time needed for the last context switch, including the time for finding available worker thread */
+    unsigned long total_time_needed_for_the_switch;         /**< Time needed for the last context switch, including the time for finding available worker thread */
     struct timespec64 time_of_the_last_switch;                  /**< Time when the last switch occured */
-    struct timespec64 time_of_the_last_switch_full;             /**< Time when the last context switch, including the time for finding available worker thread */
 } scheduler_t;
 
 /** @brief Responsible for tracking proc_dir_entries of the process

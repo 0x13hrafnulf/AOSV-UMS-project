@@ -310,9 +310,8 @@ ums_wid_t create_worker_thread(worker_params_t *params)
  *      - scheduler::state is set to IDLE
  *      - scheduler::entry_point is set to scheduler_params::entry_point
  *      - scheduler::avg_switch_time is set to 0;
- *      - scheduler::avg_switch_time_full is set to 0;
  *      - scheduler::time_needed_for_the_last_switch is set to 0;
- *      - scheduler::time_needed_for_the_last_switch_full is set to 0;
+ *      - scheduler::total_time_needed_for_the_switch is set to 0;
  *      - scheduler::comp_list is set to the pointer of the completion list retrieved using @ref check_if_completion_list_exists by passing scheduler_params::clid
  *      - scheduler::regs is a @c pt_regs data structure and set to a snapshot of current CPU registers of the pthread
  *          - scheduler::return_addr is set to regs::ip
@@ -368,9 +367,8 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     scheduler->comp_list = comp_list;
     scheduler->switch_count = 0;
     scheduler->avg_switch_time = 0;
-    scheduler->avg_switch_time_full = 0;
     scheduler->time_needed_for_the_last_switch = 0;
-    scheduler->time_needed_for_the_last_switch_full = 0;
+    scheduler->total_time_needed_for_the_switch = 0;
     scheduler_id = scheduler->sid;
 
     kern_params.sid = scheduler_id;
@@ -400,7 +398,6 @@ ums_sid_t enter_scheduling_mode(scheduler_params_t *params)
     }
 
     memcpy(task_pt_regs(current), &scheduler->regs, sizeof(struct pt_regs));
-    ktime_get_real_ts64(&scheduler->time_of_the_last_switch_full);
         
     return scheduler_id;
 }
@@ -536,11 +533,10 @@ int execute_thread(ums_wid_t worker_id)
     memcpy(task_pt_regs(current), &worker->regs, sizeof(struct pt_regs));
     copy_kernel_to_fxregs(&worker->fpu_regs.state.fxsave);
 
-    scheduler->time_needed_for_the_last_switch += get_exec_time(&scheduler->time_of_the_last_switch);
-    scheduler->time_needed_for_the_last_switch_full += get_exec_time(&scheduler->time_of_the_last_switch_full);
+    scheduler->time_needed_for_the_last_switch = get_exec_time(&scheduler->time_of_the_last_switch);
+    scheduler->total_time_needed_for_the_switch += scheduler->time_needed_for_the_last_switch;
 
-    scheduler->avg_switch_time = scheduler->time_needed_for_the_last_switch / scheduler->switch_count;
-    scheduler->avg_switch_time_full = scheduler->time_needed_for_the_last_switch_full / scheduler->switch_count;
+    scheduler->avg_switch_time = scheduler->total_time_needed_for_the_switch / scheduler->switch_count;
 
     return UMS_SUCCESS;
 }
@@ -600,7 +596,6 @@ int thread_yield(worker_status_t status)
     }
 
     worker->total_exec_time += get_exec_time(&worker->time_of_the_last_switch);
-    ktime_get_real_ts64(&scheduler->time_of_the_last_switch_full);
 
     worker->state = (status == PAUSE) ? IDLE : FINISHED;
     scheduler->wid = -1;
@@ -1387,9 +1382,8 @@ static int scheduler_proc_show(struct seq_file *m, void *p)
     seq_printf(m, "Completion list: %d\n", scheduler->comp_list->clid);
 	seq_printf(m, "Number of times the scheduler switched to a worker thread: %d\n", scheduler->switch_count);
     seq_printf(m, "Time needed for the last worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch);
-    seq_printf(m, "Time needed for the last full worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch_full);
+    seq_printf(m, "Total time needed for the worker thread switches: %lu\n", scheduler->total_time_needed_for_the_switch);
     seq_printf(m, "Average time needed for the worker thread switch: %lu\n", scheduler->avg_switch_time);
-    seq_printf(m, "Average time needed for the full worker thread switch: %lu\n", scheduler->avg_switch_time_full);
     if(scheduler->state == IDLE) seq_printf(m, "Scheduler status is: IDLE.\n");
     else if(scheduler->state == RUNNING) seq_printf(m, "Scheduler status is: Running.\n");
 	else if(scheduler->state == FINISHED) seq_printf(m, "Scheduler status is: Finished.\n");
