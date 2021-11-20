@@ -1379,7 +1379,7 @@ static int scheduler_proc_show(struct seq_file *m, void *p)
     scheduler_t *scheduler = (scheduler_t*)m->private;
     seq_printf(m, "Scheduler id: %d\n", scheduler->sid);
     seq_printf(m, "Entry point: %p\n", (void*)scheduler->entry_point);
-    seq_printf(m, "Completion list: %d\n", scheduler->comp_list->clid);
+    seq_printf(m, "Completion list: %u\n", scheduler->comp_list->clid);
 	seq_printf(m, "Number of times the scheduler switched to a worker thread: %d\n", scheduler->switch_count);
     seq_printf(m, "Time needed for the last worker thread switch: %lu\n", scheduler->time_needed_for_the_last_switch);
     seq_printf(m, "Total time needed for the worker thread switches: %lu\n", scheduler->total_time_needed_for_the_switch);
