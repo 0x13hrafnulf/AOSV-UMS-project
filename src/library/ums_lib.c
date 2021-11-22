@@ -339,23 +339,21 @@ void *ums_enter_scheduling_mode(void *args)
 
     cpu_set_t set;
     long number_of_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-    printf("number_of_cpus = %d\n", number_of_cpus);
     int cpu = params->core_id % number_of_cpus;
-    printf("UMS_SCHEDULER_CORE_ID = %d, CPU = %d\n", params->core_id, cpu);
     CPU_ZERO(&set);
     CPU_SET(cpu, &set);
     
     int ret = sched_setaffinity(getpid(), sizeof(cpu_set_t), &set);
     if(ret < 0)
     {
-        printf("Error: ums_create_worker_thread() => Schedule_Affinity => Error# = %d\n", errno);
+        printf("Error: ums_enter_scheduling_mode() => Schedule_Affinity => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
     
     ret = open_device();
     if(ret < 0)
     {
-        printf("Error: ums_create_worker_thread() => UMS_DEVICE => Error# = %d\n", errno);
+        printf("Error: ums_enter_scheduling_mode() => UMS_DEVICE => Error# = %d\n", errno);
         pthread_exit(NULL);
     }
 
@@ -405,7 +403,6 @@ int ums_execute_thread(ums_wid_t wid)
     list_params_t *list;
     ums_scheduler_t *scheduler;
     ums_worker_t *worker;
-    printf("EXECUTING %ld\n", pthread_self());
 
     worker = check_if_worker_exists(wid);
     if(worker == NULL)
@@ -562,8 +559,6 @@ list_params_t *ums_dequeue_completion_list_items()
     int ret;
     list = scheduler->list_params;
     
-    printf("Dequeue: %ld\n", pthread_self());
-    printf("Dequeue: count %d, state: %d\n", list->worker_count, list->state);
     if(list->worker_count == 0 && comp_list->state != FINISHED)
     { 
       
@@ -572,7 +567,6 @@ list_params_t *ums_dequeue_completion_list_items()
     }
     else
     {
-        printf("SKIPPING %ld\n", pthread_self());
         if(comp_list->state == FINISHED)
         {
             list->state = FINISHED;
@@ -625,12 +619,12 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
 
     if(list->state == FINISHED)
     {
-        printf("Error: get_next_worker_thread() => Completion list is finished!\n");
+        printf("Error: ums_get_next_worker_thread() => Completion list is finished!\n");
         return -UMS_ERROR_COMPLETION_LIST_ALREADY_FINISHED;
     }
     else if(list->worker_count == 0)
     {
-        printf("Error: get_next_worker_thread() => No available worker threads to run!\n");
+        printf("Error: ums_get_next_worker_thread() => No available worker threads to run!\n");
         return -UMS_ERROR_NO_AVAILABLE_WORKERS;
     }
 
