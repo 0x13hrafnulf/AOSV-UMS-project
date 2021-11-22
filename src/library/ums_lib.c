@@ -631,11 +631,6 @@ ums_wid_t ums_get_next_worker_thread(list_params_t *list)
     int index = -1;
     while(++index < list->size && list->workers[index] == -1);
 
-    for(int i = 0; i < list->size; ++i)
-    {
-        printf("%d ", list->workers[i]);
-    }
-    printf("\n");
     return list->workers[index];
 }
 
