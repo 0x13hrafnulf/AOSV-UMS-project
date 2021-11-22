@@ -53,7 +53,7 @@ The proc filesystem:
 The UMS module information log:
 ![module](./images/module.jpg)
 
-As a benchmark statistics, the switching time for schedulers was on average within *290-360* nanoseconds. Note that, there were situations with schedulers that share the same completion list, where only one scheduler completed all the work leaving other schedulers without any work. It was due to the fact that the schedulers are viewed as a simple threads by the linux system. Thus it was system scheduler's decision to run only one scheduler thread, which happened to finish all the work before other scheduler threads were woken up.
+As a benchmark statistics, the switching time for schedulers was on average within *250-360* nanoseconds. Note that, there were situations with schedulers that share the same completion list, where only one scheduler completed all the work leaving other schedulers without any work. It was due to the fact that the schedulers are viewed as a simple threads by the linux system. Thus it was system scheduler's decision to run only one scheduler thread, which happened to finish all the work before other scheduler threads were woken up.
 
 # References
 [1] https://docs.microsoft.com/en-us/windows/win32/procthread/user-mode-scheduling
